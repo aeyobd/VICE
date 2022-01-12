@@ -7,7 +7,12 @@ installing VICE with the conventional command ``python setup.py install``.
 In addition to the command-line utilities provided by ``setuptools``, this file
 also provides
 
-$ python setup.py [openmp] [extensions]
+Install Options
+---------------
+-j N        : Run build in parallel across N cores
+--user      : Install to ~/.local directory
+-q --quiet  : Run the installation non-verbosely
+ext=        : Build and install specific extension
 
 Users should invoke ``python setup.py install openmp`` when they want to link
 VICE with the openMP library to enable multithreading. This can also be
@@ -672,7 +677,7 @@ def setup_package():
 			"setuptools>=18.0", # automatically handles Cython extensions
 			"Cython>=0.29.0"
 		],
-		python_requires=">=3.7.*, <4",
+		python_requires=">=3.7, <4",
 		zip_safe = False,
 		verbose = "-q" not in sys.argv and "--quiet" not in sys.argv
 	)

@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-10.15]
+        os: ["ubuntu-latest", "macos-10.15"]
         compiler: [gcc-10, clang]
         openmp: [true, false]
         python-version:
@@ -21,25 +21,19 @@ jobs:
           - "3.10"
 
         exclude:
-          - os: macos-10.15
+
+          # Mac OS builds run with clang only
+          - os: "macos-10.15"
             compiler: gcc-10
 
-          - os: ubuntu-latest
+          # Ubuntu builds run with gcc only
+          - os: "ubuntu-latest"
             compiler: clang
 
     env:
       COMPILER: ${{ matrix.compiler }}
 
     steps:
-        # Extend the environment variables for subsequent steps if necessary
-      - name: Setup OpenMP
-        if: matrix.openmp
-        run: |
-          if [[ $OSTYPE == *"darwin"* ]] ; then
-            brew install libomp
-          fi
-          echo "OPENMP=true" >> $GITHUB_ENV
-
       - name: Checkout Repository
         uses: actions/checkout@v2
 
@@ -52,7 +46,7 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          python -m pip install Cython>=0.29.21
+          python -m pip install cython>=0.29.21
 
       - name: Display Environment Variables
         shell: bash
@@ -68,31 +62,14 @@ jobs:
       - name: Compile and Install
         shell: bash
         run: |
-          if [[ $OPENMP == "true" ]] ; then
-            python setup.py build install openmp -c $COMPILER 2> err.out
-          else
-            python setup.py build install 2> err.out
-          fi
+          make CC=$COMPILER
+          python setup.py build install --quiet
           make clean
 
-      - name: Display Compiler Warnings
-        if: always()
-        shell: bash
-        run: |
-          if [ -f "err.out" ] ; then
-            cat err.out
-            rm -f err.out
-          fi
-
-      # After tests, rename the output log if this is ran with openMP
       - name: Tests
         shell: bash
         run: |
           make tests
-          if [[ $OPENMP == "true" ]] ; then
-            LOGFILE=$(ls ./vice | grep .log)
-            mv ./vice/$LOGFILE ./vice/openmp_$LOGFILE
-          fi
 
       # Tests leave behind a test_<platform>_<version>.log file under ./vice
       - name: Upload Test Log

@@ -1,134 +1,116 @@
 # cython: language_level = 3, boundscheck = False
 
 from __future__ import absolute_import
-from ..._globals import _VERSION_ERROR_
 from ..._globals import _DIRECTORY_
-from ..._globals import ScienceWarning
 from ...core import _pyutils
 from ...core.dataframe import base as dataframe
-import numbers
-import sys
-if sys.version_info[:2] == (2, 7):
-	strcomp = basestring
-elif sys.version_info[:2] >= (3, 5):
-	strcomp = str
-else:
-	_VERSION_ERROR_()
-# from libc.stdlib cimport srand
-from libc.stdlib cimport malloc, free
-from libc.string cimport strcpy, strcmp, strlen
-from ...core._cutils cimport copy_pylist
-from ...core._cutils cimport set_string
-# from . cimport _gaussian_stars
+
+import numpy as np
+
+
+from ._gaussian_stars cimport randn
 
 
 
 cdef class c_gaussian_stars:
-
 	"""
 	The C-implementation of the gaussian_stars object. See python version for
 	documentation.
 	"""
+	cdef double[:] radial_bins
+	cdef int n_bins
+	cdef int n_t
+	cdef int n_stars
+	cdef int N_idx
+	cdef double dt
+	cdef double[:] radii
+	cdef double sigma_R
+	cdef double tau_R
 
-	def __cinit__(self, radbins, N = 1e5, mode = "diffusion"):
-		# allocate memory for hydrodiskstars object in C and import the data
-		self._gns = _gaussian_stars.gaussian_stars_initialize()
 
-		if (isinstance(N, numbers.Number)) and (N % 1 == 0):
-			_gaussian_stars.seed_random()
-		else:
-			raise TypeError("Keyword arg 'N' must be an integer.")
-
+	def __cinit__(self, radbins, int n_stars=2, 
+				  double dt=0.01, double t_end=13.5):
+		self.n_bins = len(radbins) - 1
 		self.radial_bins = radbins
+		self.n_t = np.round(t_end/dt)
+		self.n_stars = n_stars
+		self.dt = dt
+
+		self.N_idx = self.n_t * self.n_stars * self.n_bins
+
+		self.radii = np.zeros(self.N_idx, dtype=np.float64)
+
+		self.sigma_R = 3.6
+		self.tau_R = 8
 
 
-	def __init__(self, radbins, N = 1e5, mode = "diffusion"):
-		self._analog_idx = -1l
+
+	def __init__(self, radbins, int n_stars=1, 
+				 double dt=0.01, double t_end=13.5):
+
+		pass
 
 
-	def __dealloc__(self):
-		_gaussian_stars.gaussian_stars_free(self._gns)
+	def __call__(self, int zone, double tform, double time, int n=0):
 
-
-	def __call__(self, zone, tform, time):
-		if not isinstance(zone, int):
-			raise TypeError("Zone must be of type int. Got: %s" % (type(zone)))
-
-		if not (0 <= zone < self._gns[0].n_rad_bins):
+		if not (0 <= zone < self.n_bins):
 			raise ValueError("Zone out of range: %d" % (zone))
 
-		if not (isinstance(tform, numbers.Number) and
-				isinstance(time, numbers.Number)):
-			raise TypeError("""Time parameters must be numerical \
-values. Got: (%s, %s)""" % (type(tform), type(time)))
+		if tform > time:
+			raise ValueError("Time out of range: %f < tform = %f" 
+					% (time, tform))
 
-		birth_radius = (self._gns[0].rad_bins[zone] +
-			self._gns[0].rad_bins[zone + 1]) / 2
+		birth_radius = (self.radial_bins[zone]
+						 + self.radial_bins[zone + 1]) / 2
 
+		N = self.get_idx(zone, tform, n)
 		if tform == time:
-			self._analog_idx = (i * (self.n_zones * self.n_tracers) +
-                j * self.n_tracers + k)
-
-			return zone
-
-        bin_ = int(_gaussian_stars.calczone_gaussian_stars(self._gns[0],
-                    self.analog_index))
-
-		if bin_ != -1:
-			return bin_
+			self.radii[N] = birth_radius
+			bin_ =  zone
 		else:
-			raise ValueError("""\
-Radius out of bin range. Relevant information:
-Analog ID: %d
-Zone of formation: %d
-Time of formation: %.4e Gyr
-Time in simulation: %.4e Gyr""" % (self.analog_data["id"][self.analog_index],
-						zone, tform, time))
+			self.radii[N] += self.dR()
+			bin_ = self.bin_of(self.radii[N])
+			
+		return bin_
 
 
-	def object_address(self):
-		"""
-		Returns the memory address of the GAUSSIAN_STARS object in C.
-		"""
-		return <long> (<void *> self._gns)
+	def get_idx(self, int zone, double tform, int n=0):
+		cdef int N, t_int
+		t_int = np.round(tform / self.dt) 
+		if t_int > self.n_t:
+			raise ValueError("time out of range %f" % tform)
+		if n > self.n_stars:
+			raise ValueError("n out of range %i" % n)
 
 
-	@property
-	def radial_bins(self):
-		# docstring in python version
-		return [self._gns[0].rad_bins[i] for i in range(
-			self._gns[0].n_rad_bins + 1)]
+		N = (t_int * self.n_bins * self.n_stars 
+			+ zone * self.n_stars
+			+ n)
+
+		return N
 
 
-	@radial_bins.setter
-	def radial_bins(self, value):
-		value = _pyutils.copy_array_like_object(value)
+	def bin_of(self, double R):
 
-		_pyutils.numeric_check(value, TypeError,
-			"Non-numerical value detected.")
+		for i in range(self.n_bins):
+			if self.radial_bins[i] <= R  <= self.radial_bins[i+1]:
+				return i
+		
+		return -1
 
-		value = sorted(value)
 
-		if not value[-1] >= 20: 
-			raise ValueError("Maximum radius must be at least 20 kpc. Got: %g" 
-					% (value[-1]))
-		if value[0] != 0: 
-			raise ValueError("Minimum radius must be zero. Got: %g kpc." 
-					% (value[0]))
-
-		self._gns[0].n_rad_bins = len(value) - 1
-
-		if self._gns[0].rad_bins is not NULL: 
-			free(self._gns[0].rad_bins)
-
-		self._gns[0].rad_bins = copy_pylist(value)
+	def dR(self):
+		return numpy.random.normal() * np.sqrt(self.dt/self.tau_R) * self.sigma_R
 
 
 
 	@property
-	def analog_index(self):
-		# docstring in python version
-		return self._analog_idx
+	def write(self):
+		return self._write
+
+	@write.setter
+	def write(self, a):
+		self._write = a
 
 
 

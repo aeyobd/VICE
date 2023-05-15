@@ -8,8 +8,12 @@ class gaussian_stars:
 	A stellar migration scheme based on gaussian pertubations of stars at 
 	each timestep
 
-	**Signature**: vice.toolkit.gaussian_stars.gaussian_stars(radial_bins, N = 1e5,
-	mode = "diffusion")
+	**Signature**: vice.toolkit.gaussian_stars.gaussian_stars(
+		radial_bins, 
+		n_stars = 1,
+		dt = 0.01,
+		t_end = 13.5
+	)
 
 	Parameters
 	----------
@@ -19,9 +23,6 @@ class gaussian_stars:
 		way. Will be stored as an attribute.
 	N : int [default : 1e5]
 		An approximate number of star particles from the hydrodynamical
-	mode : str [case-insensitive] or ``None`` [default : "diffusion"]
-		The attribute 'mode', initialized via keyword argument.
-	Currently only implements the diffusion mode
 
 	Attributes
 	----------
@@ -50,12 +51,13 @@ class gaussian_stars:
 	"""
 
 
-	def __init__(self, rad_bins, N = 1e5, mode = "diffusion"):
-		self.__c_version = c_gaussian_stars(rad_bins, N = N, mode = mode)
+	def __init__(self, rad_bins, n_stars=1, dt=0.01, t_end=13.5):
+		self.__c_version = c_gaussian_stars(rad_bins, n_stars=n_stars, 
+			  dt=dt, t_end=t_end)
 
 
-	def __call__(self, zone, tform, time):
-		return self.__c_version.__call__(zone, tform, time)
+	def __call__(self, zone, tform, time, n=0):
+		return self.__c_version.__call__(zone, tform, time, n=0)
 
 
 	def __enter__(self):
@@ -66,14 +68,6 @@ class gaussian_stars:
 	def __exit__(self, exc_type, exc_value, exc_tb):
 		# Raises all exceptions inside a with statement
 		return exc_value is None
-
-	def __object_address(self):
-		r"""
-		Returns the memory address of the HYDRODISKSTARS object in C. For
-		internal usage only; usage of this function by the user is strongly
-		discouraged.
-		"""
-		return self.__c_version.object_address()
 
 
 	@property
@@ -95,5 +89,13 @@ class gaussian_stars:
 	@property
 	def idx(self):
 		return self.__c_version.idx
+
+	@property
+	def mode(self):
+		return None
+
+	
+
+
 
 

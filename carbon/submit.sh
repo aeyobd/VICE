@@ -31,9 +31,9 @@ python -c "
 $2
 " \$TMPDIR/
 
-python \$SLURM_SUBMIT_DIR/osc/json_outputs.py \$TMPDIR/
+python \$SLURM_SUBMIT_DIR/src/json_outputs.py \$TMPDIR/
 
-cp -r -u \$TMPDIR/*.json \$SLURM_SUBMIT_DIR/output
+cp -r -u \$TMPDIR/*.json \$SLURM_SUBMIT_DIR/out
 cp -r -u \$TMPDIR/*.csv \$SLURM_SUBMIT_DIR/results
 
 scontrol show job=\$SLURM_JOB_ID

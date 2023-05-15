@@ -165,6 +165,7 @@ class interpolator(interp_scheme_2d):
 		yields, masses, metallicities = yield_grid(element, study = study)
 		yields = [[a*prefactor for a in b] for b in yields]
 		self.prefactor = prefactor
+		self.study=study
 		self.interp_kind = interp_kind
 		if interp_kind == "linear":
 			super().__init__(list(masses), list(metallicities), list(yields))
@@ -277,6 +278,9 @@ class interpolator(interp_scheme_2d):
 		return super().zcoords
 
 
-	def __str(self): 
-		return f"{self.prefactor:0.2f}x{self.study}"
+	def __str__(self): 
+		return f"{self.prefactor:0.2f} × {self.study}"
+
+	def __repr__(self): 
+		return str(self)
 

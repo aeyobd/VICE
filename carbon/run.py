@@ -17,14 +17,14 @@ def main():
 
     if "$test_run":
         from src.multizone_sim import run_model
-        path = "."
+        path = "./out/"
         eval(pycall)
     else:
         pycall = """
 import sys
 path = sys.argv[1]""" + pycall
 
-        subprocess.call(["bash", "simulate.sh", filename, pycall])
+        subprocess.call(["bash", "submit.sh", filename, pycall])
 
 
 
@@ -66,7 +66,7 @@ def generate_filename(args):
     filename = args.agb_model
 
     if args.out_of_box_agb:
-        filename += "_OOB"
+        filename += "_oob"
     else:
         filename += "_f" + str(args.agb_fraction)
 
@@ -85,6 +85,9 @@ def generate_filename(args):
 
     if args.alpha_n != 0:
         filename += "_an" + str(args.alpha_n)
+
+    if args.n_stars != 2:
+        filename += "_nstars" + str(args.n_stars)
 
     return filename
 

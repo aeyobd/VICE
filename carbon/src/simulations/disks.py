@@ -151,6 +151,7 @@ class star_formation_history:
 		self._radii = []
 		self._evol = []
 		i = 0
+		self._spec = spec
 		max_radius = 20 # kpc, defined by ``vice.milkyway`` object.
 		while (i + 1) * zone_width < max_radius:
 			self._radii.append((i + 0.5) * zone_width)
@@ -179,4 +180,10 @@ class star_formation_history:
 				return gradient(radius) * interpolate(self._radii[-2],
 					self._evol[-2](time), self._radii[-1], self._evol[-1](time),
 					radius)
+	
+	def __str__(self):
+		return f"{self._spec}"
+
+	def __repr__(self):
+		return str(self)
 

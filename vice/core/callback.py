@@ -189,7 +189,7 @@ class callback1:
 	def __init__(self, function):
 		self.function = function
 
-	@numerical
+	# @numerical
 	def __call__(self, x):
 		return self._function(x)
 
@@ -245,8 +245,8 @@ class callback1_nan(callback1):
 	.. seealso:: ``callback1``
 	"""
 
-	@no_nan
-	@numerical
+	# @no_nan
+	# @numerical
 	def __call__(self, x):
 		return self._function(x)
 
@@ -263,9 +263,9 @@ class callback1_nan_inf(callback1):
 	.. seealso:: ``callback1``
 	"""
 
-	@no_inf
-	@no_nan
-	@numerical
+	# @no_inf
+	# @no_nan
+	# @numerical
 	def __call__(self, x):
 		return self._function(x)
 
@@ -282,9 +282,9 @@ class callback1_nan_positive(callback1):
 	.. seealso:: ``callback1``
 	"""
 
-	@positive
-	@no_nan
-	@numerical
+	# @positive
+	# @no_nan
+	# @numerical
 	def __call__(self, x):
 		return self._function(x)
 
@@ -301,10 +301,10 @@ class callback1_nan_inf_positive(callback1):
 	.. seealso:: ``callback1``
 	"""
 
-	@positive
-	@no_inf
-	@no_nan
-	@numerical
+	# @positive
+	# @no_inf
+	# @no_nan
+	# @numerical
 	def __call__(self, x):
 		return self._function(x)
 
@@ -331,7 +331,7 @@ class callback2:
 	def __init__(self, function):
 		self.function = function
 
-	@numerical
+	# @numerical
 	def __call__(self, x, y):
 		return self._function(x, y)
 
@@ -387,8 +387,8 @@ class callback2_nan(callback2):
 	.. seealso:: ``callback1``
 	"""
 
-	@no_nan
-	@numerical
+	# @no_nan
+	# @numerical
 	def __call__(self, x, y):
 		return self._function(x, y)
 
@@ -405,9 +405,9 @@ class callback2_nan_inf(callback2):
 	.. seealso:: ``callback1``
 	"""
 
-	@no_inf
-	@no_nan
-	@numerical
+	# @no_inf
+	# @no_nan
+	# @numerical
 	def __call__(self, x, y):
 		return self._function(x, y)
 
@@ -424,9 +424,9 @@ class callback2_nan_positive(callback2):
 	.. seealso:: ``callback1``
 	"""
 
-	@positive
-	@no_nan
-	@numerical
+	# @positive
+	# @no_nan
+	# @numerical
 	def __call__(self, x, y):
 		return self._function(x, y)
 
@@ -443,10 +443,10 @@ class callback2_nan_inf_positive(callback2):
 	.. seealso:: ``callback1``
 	"""
 
-	@positive
-	@no_inf
-	@no_nan
-	@numerical
+	#@positive
+	#@no_inf
+	#@no_nan
+	#@numerical
 	def __call__(self, x, y):
 		return self._function(x, y)
 

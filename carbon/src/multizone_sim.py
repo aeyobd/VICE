@@ -174,17 +174,39 @@ def create_evolution(spec, burst_size):
 def create_mass_loading(eta_factor, ratio_reduce=False):
     # for changing value of eta
     if ratio_reduce:
-        def mass_loading(R):
-            eta_0 = vice.milkyway.default_mass_loading(R)
+        def eta_f(R):
+            ml = mass_loading()
+            eta_0 = ml(R)
             r = 0.4 # this is an approximation
             eta =  (1 - r) * (eta_factor - 1) + eta_factor * eta_0
             if eta < 0:
                 eta = 0
             return eta
     else:
-        mass_loading = lambda R: vice.milkyway.default_mass_loading(R) * eta_factor
+        eta_f = mass_loading(eta_factor)
 
-    return mass_loading
+    return eta_f
 
+
+class mass_loading:
+    def __init__(self, factor=1):
+        self._factor = factor
+        pass
+
+    def __call__(self, R_gal):
+        return self._factor*(
+                -0.6 
+                + 0.015 / 0.00572 
+                * 10**(0.08*(R_gal - 4) - 0.3)
+               )
+
+    def __str__(self):
+        A = self._factor * 0.015/0.00572 * 10**(-0.3 + 0.08*(-4))
+        C = -0.6 * self._factor
+        r = 0.08
+        return f"{C} + {A:0.4f}×10^({r:0.4f} R)"
+
+    def __repr__(self):
+        return str(self)
 
 

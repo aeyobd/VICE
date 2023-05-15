@@ -26,6 +26,8 @@ vice/*.c
 vice/_build_utils/*.obj 
 vice/modeling/*.c 
 
+
+user/
 # Ignore locally compiled documentation 
 docs/vice.pdf 
 docs/src/_build/* 
@@ -52,6 +54,11 @@ vice/toolkit/hydrodisk/data/h277/processor/*.fits
 
 # Temporary h277 files 
 vice/toolkit/hydrodisk/data/h277/no_outer_disk/*.dat 
+
+
+# carbon results
+carbon/results/*.csv
+carbon/out/*
 
 # Local file for organization purposes
 info.yaml

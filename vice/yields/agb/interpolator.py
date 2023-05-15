@@ -5,6 +5,7 @@ interpolation scheme off of the built-in yield sets.
 
 from ...toolkit.interpolation.interp_scheme_2d import interp_scheme_2d
 from ._grid_reader import yield_grid
+import math
 
 
 class interpolator(interp_scheme_2d):
@@ -35,6 +36,15 @@ class interpolator(interp_scheme_2d):
 		.. versionadded:: 1.3.0
 			The "ventura13" and "karakas16" yield models were introduced in
 			version 1.3.0.
+	prefactor : ``float`` [default = 1]
+		A factor which to uniformly scale yields by.
+	interp_kind : ``str`` [default = "linear"]
+		How to interpolate the yield table.
+		Recognized keywords:
+			- "linear"
+			- "log"
+			- "spline" (todo).
+
 
 	Attributes
 	----------
@@ -45,6 +55,8 @@ class interpolator(interp_scheme_2d):
 	yields : ``list`` [elements of type ``list``]
 		The yields at each stellar mass and metallicity reported by the
 		adopted study.
+	prefactor : ``float`` [default = 1]
+		A factor which to uniformly scale yields by.
 
 	Calling
 	-------
@@ -147,10 +159,28 @@ class interpolator(interp_scheme_2d):
 	.. [6] Karakas et al. (2018), MNRAS, 477, 421
 	"""
 
-	def __init__(self, element, study = "cristallo11"):
+	def __init__(self, element, study = "cristallo11", 
+			  prefactor=1, interp_kind="linear"):
 		# let the grid reader function do the error handling
 		yields, masses, metallicities = yield_grid(element, study = study)
-		super().__init__(list(masses), list(metallicities), list(yields))
+		yields = [[a*prefactor for a in b] for b in yields]
+		self.prefactor = prefactor
+		self.interp_kind = interp_kind
+		if interp_kind == "linear":
+			super().__init__(list(masses), list(metallicities), list(yields))
+		elif interp_kind == "log":
+			super().__init__(
+					list(masses), 
+					[math.log10(z) for z in metallicities], 
+					list(yields))
+		else:
+			raise ValueError("unexpected interp_kind: %s" % interp_kind)
+
+	def __call__(self, M, Z):
+		if self.interp_kind == "linear":
+			return super().__call__(M, Z)
+		elif self.interp_kind == "log":
+			return super().__call__(M, math.log10(Z))
 
 	@property
 	def masses(self):
@@ -245,4 +275,8 @@ class interpolator(interp_scheme_2d):
 		[0.00773393, 0.00111333, -5.62667e-05, -0.0004974]
 		"""
 		return super().zcoords
+
+
+	def __str(self): 
+		return f"{self.prefactor:0.2f}x{self.study}"
 

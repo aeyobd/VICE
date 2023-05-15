@@ -1,2 +1,4 @@
-make with make
-install with python setup.py build install --user
+
+
+make with python -m build (maybe not needed ?)
+install with pip install .

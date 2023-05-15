@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from ._gaussian_stars import c_gaussian_stars
+import numpy as np
 
 
 class gaussian_stars:
@@ -21,8 +22,16 @@ class gaussian_stars:
 		The bins in galactocentric radius in kpc describing the disk model.
 		This must extend from 0 to at least 20. Need not be sorted in any
 		way. Will be stored as an attribute.
-	N : int [default : 1e5]
-		An approximate number of star particles from the hydrodynamical
+	n_stars : int [default : 1]
+		The number of stars to create during each timestep
+	dt : float [default : 0.01]
+		The simulation timestep. This should really be set
+	t_end : float [Default]
+	tau_R: float [default : 8]
+		Migration timescale in Gyr
+	sigma_R: float [default : 3.6]
+		Migration distance scale in kpc
+	
 
 	Attributes
 	----------
@@ -46,12 +55,15 @@ class gaussian_stars:
 		time : float
 			The simulation time in Gyr (i.e. not the age of the star particle).
 
-        n: int
-            The id of the star particle
+		n: int
+			The id of the star particle
 	"""
 
 
-	def __init__(self, rad_bins, n_stars=1, dt=0.01, t_end=13.5):
+	def __init__(self, rad_bins, n_stars=1, dt=0.01, t_end=13.5, tau_R=8,
+			  sigma_R=3.6):
+		if isinstance(rad_bins, list):
+			rad_bins = np.array(rad_bins)
 		self.__c_version = c_gaussian_stars(rad_bins, n_stars=n_stars, 
 			  dt=dt, t_end=t_end)
 

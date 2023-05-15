@@ -4,10 +4,13 @@ from vice.yields.agb import interpolator
 from scipy.integrate import quad
 from vice.yields import ccsne, sneia, agb
 
+
 Z_Sun = 0.014
 y_c_0 = 0.005
 y_c_cc_0=0.0028
 y_n_flat = 7.2e-4
+
+
 
 YC_AGB0 = {
         "cristallo11": 3.47e-4,
@@ -17,6 +20,29 @@ YC_AGB0 = {
 }
 
 # default settings
+
+
+def set_yields(eta=1, beta=0.001, fe_ia_factor=None,
+               agb_model="cristallo11", oob=False, f_agb=0.2,
+               alpha_n=0.5, ):
+
+    set_fe(fe_ia_factor)
+
+    alpha_agb, alpha_cc = calc_alpha(agb_model, eta, oob, f_agb)
+    set_agb(agb_model, alpha_agb)
+
+    set_n(eta, alpha_n)
+    
+    prefactor = y_c_0 * alpha_cc / (y_c_cc_0 + beta)
+    vice.yields.ccsne.settings["c"] = LinCC(zeta=beta*prefactor, y0=prefactor*y_c_cc_0)
+
+    set_eta(eta)
+
+    print_yields()
+
+
+
+
 
 class LinAGB:
     def __init__(self, zeta, y0):
@@ -28,6 +54,9 @@ class LinAGB:
 
     def __str__(self):
         return f"{self.y0:0.2e} M + {self.zeta:0.2e} M Z/Z0"
+
+
+
 
 class LinCC:
     def __init__(self, zeta, y0):
@@ -64,14 +93,14 @@ set_defaults()
 
 
 
+
 def set_agb_elem(elem, study, factor):
     if elem == "fe" and agb_model == "ventura13":
         study = "cristallo11"
 
-    if factor == 1:
-        agb.settings[elem] = study
-    else:
-        agb.settings[elem] = amplified_yields(elem, study, factor)
+    agb.settings[elem] = interpolator(elem, study, prefactor=factor)
+
+
 
 def set_agb(study="cristallo11", factor=1):
     for elem in ["c", "o", "mg"]:
@@ -87,6 +116,7 @@ def set_fe(fe_ia_factor):
         vice.yields.sneia.settings["fe"] = fe_ia
 
 
+
 def set_eta(eta=1):
     if eta==1:
         return
@@ -100,39 +130,20 @@ def set_eta(eta=1):
         if isinstance(y, float):
             sneia.settings[elem] *= eta
 
+
 def set_n(eta, alpha_n):
     y_cc_n = eta*y_n_flat * (1-alpha_n)
     y_n_0 = eta*y_n_flat * alpha_n
     vice.yields.agb.settings["n"] = LinAGB(zeta=9e-4, y0=y_n_0)
     vice.yields.ccsne.settings["n"] = y_cc_n
 
-def set_yields(eta=1, beta=0.001, fe_ia_factor=None,
-               agb_model="cristallo11", oob=False, f_agb=0.2,
-               alpha_n=0.5, ):
 
-    set_fe(fe_ia_factor)
 
-    alpha_agb, alpha_cc = calc_alpha(agb_model, eta, oob, f_agb)
-    set_agb(agb_model, alpha_agb)
-
-    set_n(eta, alpha_n)
-    
-    prefactor = y_c_0 * alpha_cc / (y_c_cc_0 + beta)
-
-    vice.yields.ccsne.settings["c"] = LinCC(zeta=beta*prefactor, y0=prefactor*y_c_cc_0)
-
-    set_eta(eta)
-
-    print_yields()
 
 
 def calc_alpha(agb_model="cristallo11" , eta=1, oob=False, f_agb=0.2):
-    # these are derived from multizone runs
-    agb_model = agb_model
-
     y_agb = YC_AGB0[agb_model]
-
-    y_c = y_c_0*eta
+    y_c = y_c_0 * eta
 
     if oob:
         alpha_agb = 1
@@ -144,17 +155,8 @@ def calc_alpha(agb_model="cristallo11" , eta=1, oob=False, f_agb=0.2):
 
     return alpha_agb, alpha_cc
 
-class amplified_yields(interpolator):
-    def __init__(self, element, study="cristallo11", prefactor=1):
-        super().__init__(element, study=study)
-        self.prefactor = prefactor
-        self.study = study
 
-    def __call__(self, mass, Z):
-        return super().__call__(mass, Z) * self.prefactor
 
-    def __str__(self):
-        return f"{self.prefactor:0.2f}x{self.study}"
 
 
 def print_yields():
@@ -171,6 +173,8 @@ def print_yields():
 
     print()
     print()
+
+
 
 def print_row(*args):
     for i in range(len(args)):

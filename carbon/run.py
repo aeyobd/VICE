@@ -1,5 +1,31 @@
 import argparse
 import subprocess
+import sys
+
+
+def main():
+    args = parse_args()
+    filename = args.filename
+
+    if not filename:
+        filename = generate_filename(args)
+
+    print(filename)
+
+    pycall = create_pycall(filename, args)
+    print(pycall)
+
+    if "$test_run":
+        from src.multizone_sim import run_model
+        path = "."
+        eval(pycall)
+    else:
+        pycall = """
+import sys
+path = sys.argv[1]""" + pycall
+
+        subprocess.call(["bash", "simulate.sh", filename, pycall])
+
 
 
 def parse_args():
@@ -17,6 +43,8 @@ def parse_args():
                         help="use an out-of-box AGB model ")
     parser.add_argument("-m", "--agb_model", default="C11", 
                         help="the name of the AGB model to use ")
+    parser.add_argument("-M", "--migration_mode", default="diffusion", 
+                        help="migration mode")
     parser.add_argument("-F", "--filename", default=None,
                         help="the name of the output file ")
     parser.add_argument("-A", "--lateburst_amplitude", type=float, default=1.5, 
@@ -46,6 +74,8 @@ def generate_filename(args):
 
     if args.spec != "insideout":
         filename += "_" + args.spec + str(args.lateburst_amplitude)
+    if args.migration_mode != "diffusion":
+        filename += "_" + args.migration_mode
 
     if args.fe_ia_factor != "None":
         filename += "_Fe" + str(args.fe_ia_factor)
@@ -61,24 +91,22 @@ def generate_filename(args):
 
 def create_pycall(filename, args):
     # create call to python script
-    pycall = f"""
-from src.simulate import main
-import sys
-path = sys.argv[1]
-
-main(path
-    "{filename}",
+    pycall = f"""\
+run_model(
+     filename=r"{filename}",
+     prefix=path,
      eta={args.eta}, 
      beta={args.beta}, 
-     spec="{args.spec}",
-     f_agb={args.agb_fraction},
-     OOB={args.out_of_box_agb},
-     agb_model="{args.agb_model}",
-     A={args.lateburst_amplitude},
+     spec=r"{args.spec}",
+     agb_fraction={args.agb_fraction},
+     out_of_box_agb={args.out_of_box_agb},
+     agb_model=r"{args.agb_model}",
+     lateburst_amplitude={args.lateburst_amplitude},
      fe_ia_factor={args.fe_ia_factor},
-     dt={args.timestep},
+     timestep={args.timestep},
      n_stars={args.n_stars},
-     alpha_n={args.alpha_n}
+     alpha_n={args.alpha_n},
+     migration_mode="{args.migration_mode}",
     )
 """
     return pycall
@@ -86,24 +114,8 @@ main(path
 
 
 
-
 if __name__ == "__main__":
-    args = parse_args()
-    filename = args.filename
-
-    if not filename:
-        filename = generate_filename(args)
-
-    print(filename)
-
-    pycall = create_pycall(filename, args)
-    print(pycall)
-
-    if "$test_run":
-        from src.simulations import multizone_run
-        multizone_run(".", filename, **args)
-    else:
-        subprocess.call(["bash", "simulate.sh", filename, pycall])
+    main()
 
 
 

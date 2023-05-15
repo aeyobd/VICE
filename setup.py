@@ -84,9 +84,9 @@ Topic :: Scientific/Engineering :: Physics
 # Changes to these numbers also require changes to ./docs/src/index.rst and
 # ./docs/src/cover.tex
 MAJOR			= 1
-MINOR			= 3
+MINOR			= 4
 MICRO			= 0
-DEV				= None
+DEV				= 1
 ALPHA			= None
 BETA			= None
 RC				= None
@@ -327,7 +327,7 @@ def setup_package():
 			"setuptools>=18.0", # automatically handles Cython extensions
 			"Cython>=0.29.0"
 		],
-		python_requires=">=3.6.*, <4",
+		python_requires=">=3.6, <4",
 		zip_safe = False,
 		verbose = "-q" not in sys.argv and "--quiet" not in sys.argv
 	)

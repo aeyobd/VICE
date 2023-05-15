@@ -113,6 +113,20 @@ extern void seed_random(void);
  */
 extern double rand_range(double minimum, double maximum);
 
+
+
+
+/*
+ * Generate a random number following normal distribution
+ *
+ * source: utils.c
+ */
+extern double randn();
+
+
+
+
+
 /*
  * A standard interpolation function. For two points (x1, y1) and (x2, y2),
  * this function draws the line between them and finds the expected value of y

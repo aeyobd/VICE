@@ -106,6 +106,13 @@ class gaussian_stars:
 	def mode(self):
 		return None
 
+	@property
+	def write(self):
+		return self._write
+
+	@write.setter
+	def write(self, a):
+		self._write = a
 	
 
 

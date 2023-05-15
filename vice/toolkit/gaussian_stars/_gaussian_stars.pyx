@@ -17,7 +17,7 @@ cdef class c_gaussian_stars:
 	The C-implementation of the gaussian_stars object. See python version for
 	documentation.
 	"""
-	cdef double[:] radial_bins
+	cdef double[:] _radial_bins
 	cdef int n_bins
 	cdef int n_t
 	cdef int n_stars
@@ -31,7 +31,7 @@ cdef class c_gaussian_stars:
 	def __cinit__(self, radbins, int n_stars=2, 
 				  double dt=0.01, double t_end=13.5):
 		self.n_bins = len(radbins) - 1
-		self.radial_bins = radbins
+		self._radial_bins = radbins
 		self.n_t = np.round(t_end/dt)
 		self.n_stars = n_stars
 		self.dt = dt
@@ -52,6 +52,7 @@ cdef class c_gaussian_stars:
 
 
 	def __call__(self, int zone, double tform, double time, int n=0):
+		cdef int bin_id
 
 		if not (0 <= zone < self.n_bins):
 			raise ValueError("Zone out of range: %d" % (zone))
@@ -66,12 +67,18 @@ cdef class c_gaussian_stars:
 		N = self.get_idx(zone, tform, n)
 		if tform == time:
 			self.radii[N] = birth_radius
-			bin_ =  zone
+			bin_id =  zone
 		else:
-			self.radii[N] += self.dR()
-			bin_ = self.bin_of(self.radii[N])
+			self.radii[N] = np.abs(self.dR() + self.radii[N])
+			if self.radii[N] > 20:
+				self.radii[N] = 20
 			
-		return bin_
+			bin_id = self.bin_of(self.radii[N])
+
+		if (0 > bin_id) or (self.n_bins < bin_id):
+			raise RuntimeError("calculated a nonsense bin, %i" % bin_id )
+			
+		return bin_id
 
 
 	def get_idx(self, int zone, double tform, int n=0):
@@ -91,16 +98,17 @@ cdef class c_gaussian_stars:
 
 
 	def bin_of(self, double R):
+		if R < 0:
+			return -1
 
 		for i in range(self.n_bins):
 			if self.radial_bins[i] <= R  <= self.radial_bins[i+1]:
-				return i
-		
-		return -1
+				return int(i)
+		return self.n_bins
 
 
 	def dR(self):
-		return numpy.random.normal() * np.sqrt(self.dt/self.tau_R) * self.sigma_R
+		return np.random.normal() * np.sqrt(self.dt/self.tau_R) * self.sigma_R
 
 
 
@@ -111,6 +119,11 @@ cdef class c_gaussian_stars:
 	@write.setter
 	def write(self, a):
 		self._write = a
+
+	@property
+	def radial_bins(self):
+		return self._radial_bins
+
 
 
 

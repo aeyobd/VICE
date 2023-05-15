@@ -6,6 +6,7 @@ from ..core.multizone import multizone
 from ..core.dataframe._builtin_dataframes import solar_z
 from ..core import _pyutils
 from ..toolkit.hydrodisk import hydrodiskstars
+from ..toolkit.gaussian_stars import gaussian_stars
 from ..toolkit.J21_sf_law import J21_sf_law
 from .. import yields
 from .utils import mass_from_surface_density
@@ -68,6 +69,10 @@ class milkyway(multizone):
 		A string denoting the time-dependence of stellar migration. This
 		keyword will be passed to the ``hydrodiskstars`` object implementing
 		the stellar migration scheme.
+		In the special case migration_mode="gaussian", the time dependence
+		instead is based on Frankel++19, 20's stellar migration model, 
+		where each particle's radial position is perturbed by a normal
+		distribution at each timestep.
 
 	Attributes
 	----------
@@ -201,14 +206,21 @@ class milkyway(multizone):
 
 
 	def __init__(self, zone_width = 0.5, name = "milkyway", n_stars = 1,
-		simple = False, verbose = False, N = 1e5, migration_mode = "diffusion"):
+			simple = False, verbose = False, N = 1e5, 
+			migration_mode = "diffusion", dt = 0.01):
+
 		radial_bins = _get_radial_bins(zone_width)
 		super().__init__(name = name, n_zones = len(radial_bins) - 1,
-			n_stars = n_stars, simple = simple, verbose = verbose)
+				n_stars = n_stars, simple = simple, verbose = verbose)
 		
-		# set default values
-		self.migration.stars = hydrodiskstars(radial_bins, N = N,
-			mode = migration_mode)
+		self.dt = dt
+
+		if migration_mode == "gaussian":
+			self.migration.stars = gaussian_stars(radial_bins, N=N, dt=dt)
+		else:
+			self.migration.stars = hydrodiskstars(radial_bins, N = N,
+				mode = migration_mode)
+
 		self.evolution = milkyway.default_evolution
 		self.mass_loading = milkyway.default_mass_loading
 		for i in range(self.n_zones):

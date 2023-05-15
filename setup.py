@@ -110,7 +110,7 @@ Topic :: Scientific/Engineering :: Physics
 MAJOR			= 1
 MINOR			= 4
 MICRO			= 0
-DEV				= None
+DEV				= 1
 ALPHA			= None
 BETA			= None
 RC				= None

@@ -9,6 +9,7 @@
  */
 
 #include "../singlezone.h"
+#include "../utils.h"
 #include "recycling.h"
 
 
@@ -33,6 +34,7 @@ extern double mass_recycled(SINGLEZONE sz, ELEMENT *e) {
 
 	/* ----------------------- Continuous recycling ----------------------- */
 	if ((*sz.ssp).continuous) {
+
 		unsigned long i;
 		double mass = 0;
 		/* From each previous timestep, there's a dCRF contribution */
@@ -45,8 +47,11 @@ extern double mass_recycled(SINGLEZONE sz, ELEMENT *e) {
 					sz.dt * ((*sz.ssp).crf[i + 1l] - (*sz.ssp).crf[i]) *
 					(*e).Z[sz.timestep - i]);
 			}
+
 		}
+
 		return mass;
+
 	/* ---------------------- Instantaneous recycling ---------------------- */
 	} else {
 		if (e == NULL) {			/* gas supply */

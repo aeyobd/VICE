@@ -359,15 +359,12 @@ smaller than maximum number of bins.""")
 	else: pass
 
 	"""
-	Explodability is either None of a callable function with one parameter.
+	Explodability is either None or a callable function with one parameter.
 	"""
 	cdef CALLBACK_1ARG *explodability_cb = callback_1arg_initialize()
 	if explodability is None:
 		# assume everything explodes
-		def uniform(m):
-			return 1.0
-		uniform_explodability = callback1_nan_inf(uniform)
-		callback_1arg_setup(explodability_cb, uniform_explodability)
+		callback_1arg_setup(explodability_cb, 1.0)
 	elif callable(explodability):
 		exp_cb = callback1_nan_inf(explodability)
 		callback_1arg_setup(explodability_cb, exp_cb)
@@ -378,7 +375,6 @@ explodability is over-specified in this calculation.""" % (
 	else:
 		raise TypeError("""Explodability must be either NoneType or a callable \
 object. Got: %s""" % (type(explodability)))
-
 
 	"""
 	The IMF is either None or a callable function with one parameter. However,

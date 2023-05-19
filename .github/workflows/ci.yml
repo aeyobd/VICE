@@ -6,15 +6,15 @@ on: [push, pull_request]
 
 jobs:
   build:
-    name: ${{ matrix.os }} | Python ${{ matrix.python-version }} | ${{ matrix.compiler }}
+    name: ${{ matrix.os }} | Python ${{ matrix.python-version }} | openmp = ${{ matrix.openmp }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-10.15"]
         compiler: [gcc-10, clang]
+        openmp: [true, false]
         python-version:
-          - "3.6"
           - "3.7"
           - "3.8"
           - "3.9"

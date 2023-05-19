@@ -32,6 +32,73 @@ from libc.string cimport strlen
 from . cimport _cutils
 
 
+def openmp(nthreads):
+	r"""
+	Run a simple test on openMP features.
+	"""
+	set_nthreads(nthreads)
+	print("Number of openMP threads: %d" % (get_nthreads()))
+	_cutils.openmp_test()
+
+
+def _openmp_linked():
+	r"""
+	Returns ``True`` if the current installation was linked with openMP at
+	compile-time, ``False`` otherwise.
+	"""
+	return bool(_cutils.openmp_linked())
+
+
+cdef void set_nthreads(n) except *:
+	r"""
+	Set the number of threads used in multithreaded portions of VICE's backend.
+
+	Parameters
+	----------
+	n : ``int``
+		The number of threads to spread the calculation across.
+
+	Raises
+	------
+	RuntimeWarning
+		The user has not gone through the necessary steps to enable
+		multiprocessing within VICE, which requires linking to the openMP
+		library at compile time.
+	"""
+	if isinstance(n, numbers.Number):
+		if n % 1 == 0 and n > 0:
+			if _cutils.openmp_set_nthreads(<unsigned short> n):
+				raise RuntimeError("""\
+This installation of VICE was not linked with the openMP library at compile \
+time, rendering multithreading unavailable. To make use of these features, \
+follow the instructions under "Enable Multithreading" at \
+https://vice-astro.readthedocs.io/en/latest/install.html.
+""")
+			else: pass
+		else:
+			raise ValueError("""\
+Number of threads must be a positive definite integer. Got: %g""" % (n))
+	else:
+		raise TypeError("""\
+Number of threads must be a positive definite integer. Got: %s""" % (type(n)))
+
+
+cdef unsigned short get_nthreads() except *:
+	r"""
+	Determine the number of threads used in multithreaded portions of VICE's
+	backend.
+
+	Returns
+	-------
+	n : ``int``
+		The number of threads calculations will be spread across.
+
+		.. note:: This number can be assigned by calling the ``set_nthreads``
+			function in vice/core/_cutils.pyx.
+	"""
+	return int(_cutils.openmp_get_nthreads())
+
+
 cdef class progressbar:
 
 	r"""
@@ -588,7 +655,7 @@ cdef int *ordinals(pystr) except *:
 	else:
 		pass
 
-	cdef int *copy = <int *> malloc (len(pystr) * sizeof(int))
+	cdef int *copy = <int *> malloc (<unsigned long> len(pystr) * sizeof(int))
 	for i in range(len(pystr)):
 		copy[i] = ord(pystr[i])
 	return copy
@@ -609,7 +676,8 @@ cdef double *copy_pylist(pylist) except *:
 	* TypeError
 		- ``pylist`` has a non-numerical value
 	"""
-	cdef double *copy = <double *> malloc (len(pylist) * sizeof(double))
+	cdef double *copy = <double *> malloc (<unsigned long> len(pylist) *
+		sizeof(double))
 	for i in range(len(pylist)):
 		if isinstance(pylist[i], numbers.Number):
 			copy[i] = pylist[i]
@@ -634,9 +702,11 @@ cdef double **copy_2Dpylist(pylist) except *:
 	* TypeError
 		- pylist has a non-numerical value
 	"""
-	cdef double **copy = <double **> malloc (len(pylist) * sizeof(double *))
+	cdef double **copy = <double **> malloc (<unsigned long> len(pylist) *
+		sizeof(double *))
 	for i in range(len(pylist)):
-		copy[i] = <double *> malloc (len(pylist[i]) * sizeof(double))
+		copy[i] = <double *> malloc (<unsigned long> len(pylist[i]) *
+			sizeof(double))
 		for j in range(len(pylist[i])):
 			if isinstance(pylist[i][j], numbers.Number):
 				copy[i][j] = pylist[i][j]
@@ -676,7 +746,8 @@ cdef double *map_pyfunc_over_array(pyfunc, pyarray) except *:
 			type(pyfunc)))
 	else:
 		pass
-	cdef double *mapped = <double *> malloc (len(pyarray) * sizeof(double))
+	cdef double *mapped = <double *> malloc (<unsigned long> len(pyarray) *
+		sizeof(double))
 	for i in range(len(pyarray)):
 		if isinstance(pyarray[i], numbers.Number):
 			if isinstance(pyfunc(pyarray[i]), numbers.Number):

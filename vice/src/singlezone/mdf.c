@@ -4,6 +4,7 @@
 #include "../mdf.h"
 #include "../utils.h"
 #include "../stats.h"
+#include "../debug.h"
 #include "mdf.h"
 
 
@@ -36,13 +37,13 @@ extern unsigned short setup_MDF(SINGLEZONE *sz) {
 		(*sz).n_elements * sizeof(double *)
 	);
 	if ((*(*sz).mdf).abundance_distributions == NULL) {
-		return 1;
+		return 1u;
 	} else {
 		for (j = 0; j < (*sz).n_elements; j++) {
 			sz -> mdf -> abundance_distributions[j] = (double *) malloc (
 				(*(*sz).mdf).n_bins * sizeof(double));
 			if ((*(*sz).mdf).abundance_distributions[j] == NULL) {
-				return 1;
+				return 1u;
 			} else {
 				for (i = 0l; i < (*(*sz).mdf).n_bins; i++) {
 					sz -> mdf -> abundance_distributions[j][i] = 0.0;
@@ -55,18 +56,17 @@ extern unsigned short setup_MDF(SINGLEZONE *sz) {
 	 * The number of abundance ratios is n choose 2 = n(n - 1)/2. Initialize
 	 * each abundance ratio to an array of zeroes as well.
 	 */
-	// unsigned int n_ratios = (*sz).n_elements * ((*sz).n_elements - 1) / 2;
 	unsigned int n_ratios = choose((*sz).n_elements, 2);
 	sz -> mdf -> ratio_distributions = (double **) malloc (n_ratios *
 		sizeof(double *));
 	if ((*(*sz).mdf).ratio_distributions == NULL) {
-		return 1;
+		return 1u;
 	} else {
 		for (j = 0; j < n_ratios; j++) {
 			sz -> mdf -> ratio_distributions[j] = (double *) malloc (
 				(*(*sz).mdf).n_bins * sizeof(double));
 			if ((*(*sz).mdf).ratio_distributions == NULL) {
-				return 1;
+				return 1u;
 			} else {
 				for (i = 0l; i < (*(*sz).mdf).n_bins; i++) {
 					sz -> mdf -> ratio_distributions[j][i] = 0.0;
@@ -75,7 +75,7 @@ extern unsigned short setup_MDF(SINGLEZONE *sz) {
 		}
 	}
 
-	return 0;
+	return 0u;
 
 }
 
@@ -112,7 +112,6 @@ extern void update_MDF(SINGLEZONE *sz) {
 	}
 
 	/* ---------------------- for each abundance ratio ---------------------- */
-	unsigned int n = 0;
 	for (i = 1; i < (*sz).n_elements; i++) {
 		for (j = 0; j < i; j++) {
 			double onH1 = onH(*sz, *(*sz).elements[i]);
@@ -126,10 +125,11 @@ extern void update_MDF(SINGLEZONE *sz) {
 				 * Prefactors cancel in normalization at the end of the
 				 * simulation.
 				 */
-				sz -> mdf -> ratio_distributions[n][bin] += (
+				unsigned int k, idx = j;
+				for (k = 0u; k < i; k++) idx += k;
+				sz -> mdf -> ratio_distributions[idx][bin] += (
 					*(*sz).ism).star_formation_rate;
 			} else {}
-			n++;
 		}
 	}
 

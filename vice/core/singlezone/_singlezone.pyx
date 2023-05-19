@@ -57,6 +57,7 @@ from .._cutils cimport setup_imf
 from .._cutils cimport callback_1arg_setup
 from .._cutils cimport callback_2arg_setup
 from .._cutils cimport copy_2Dpylist
+from .._cutils cimport set_nthreads
 from ..objects cimport _element
 from ..objects cimport _singlezone
 from ..objects cimport _sneia
@@ -110,6 +111,7 @@ cdef class c_singlezone:
 		func = _DEFAULT_FUNC_,
 		mode = "ifr",
 		verbose = False,
+		nthreads = 1,
 		elements = ("fe", "sr", "o"),
 		IMF = "kroupa",
 		eta = 2.5,
@@ -145,6 +147,7 @@ cdef class c_singlezone:
 		self.func = func
 		self.mode = mode
 		self.verbose = verbose
+		self.nthreads = nthreads
 		self.elements = elements
 		self.IMF = IMF
 		self.eta = eta
@@ -312,6 +315,32 @@ Got: %s""" % (type(value)))
 		else:
 			raise TypeError("""Attribute 'verbose' must be interpretable as \
 a boolean. Got: %s""" % (type(value)))
+
+	@property
+	def nthreads(self):
+		# docstring in python version
+		return int(self._sz[0].nthreads)
+
+	@nthreads.setter
+	def nthreads(self, value):
+		r"""
+		The number of openMP threads to use in this calculation.
+
+		Allowed Types
+		=============
+		int
+
+		Allowed Values
+		==============
+		Positive definite
+
+		The ``set_nthreads`` function in vice/core/_cutils.pyx does all of
+		the error handling here.
+		"""
+		# Let the _cutils set_nthreads function do the error handling
+		set_nthreads(value)
+		# If the code gets here, can proceed as planned w/o a worry
+		self._sz[0].nthreads = <unsigned short> value
 
 	@property
 	def elements(self):
@@ -735,8 +764,11 @@ value with a >10%% discrepancy from this value: %g""" % (value),
 		_pyutils.numeric_check(value, TypeError, """Attribute 'bins' must \
 contain only numerical values.""")
 		value = sorted(value) 	# ascending order
-		self._sz[0].mdf[0].n_bins = len(value) - 1
-		self._sz[0].mdf[0].bins = copy_pylist(value)
+		if len(value) > 1:
+			self._sz[0].mdf[0].n_bins = <unsigned> len(value) - 1
+			self._sz[0].mdf[0].bins = copy_pylist(value)
+		else:
+			raise ValueError("Attribute 'bins' must be of length > 1.")
 
 	@property
 	def delay(self):
@@ -1319,7 +1351,7 @@ All elemental yields in the current simulation will be set to the table of \
 
 			# just do it #nike
 			self._sz[0].output_times = copy_pylist(output_times)
-			self._sz[0].n_outputs = len(output_times)
+			self._sz[0].n_outputs = <unsigned> len(output_times)
 			enrichment = _singlezone.singlezone_evolve(self._sz)
 
 			# save yield settings and attributes, free mass-lifetime data

@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from ..._globals import _DIRECTORY_
 from ...core import _pyutils
 from ...core.dataframe import base as dataframe
+import os
 
 
 import numpy as np
@@ -39,8 +40,11 @@ cdef class c_gaussian_stars:
 		self.tau_R = 8
 		self._write = False
 
-		fname = (name + ".vice/gauss_migration.txt").encode()
-		self.filename = fname
+		dirname = (name + ".vice")
+		if os.path.exists(dirname):
+			fname = os.path.join(dirname, "gauss_migration.txt")
+			self.filename = fname
+			self.write = True
 
 
 
@@ -89,8 +93,9 @@ cdef class c_gaussian_stars:
 		return bin_id
 
 	def write_migration(self, s):
-		with open(str(self.filename), "a") as f:
+		with open(self.filename, "a") as f:
 			f.write(s)
+
 
 	def get_idx(self, int zone, double tform, *, int n=0):
 		cdef int t_int
@@ -131,12 +136,14 @@ cdef class c_gaussian_stars:
 
 
 	def write_header(self):
-		with open(str(self.filename), "w") as f:
+		with open(self.filename, "w") as f:
 			f.write("N,t,R,zone\n")
+
 
 	@property
 	def write(self):
 		return self._write
+
 
 	@write.setter
 	def write(self, a):

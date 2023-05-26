@@ -20,4 +20,4 @@ cdef class c_gaussian_stars:
 	cdef double sigma_R
 	cdef double tau_R
 	cdef bint _write
-	cdef char * filename
+	cdef str filename

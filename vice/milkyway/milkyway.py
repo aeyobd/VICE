@@ -217,7 +217,7 @@ class milkyway(multizone):
 
 		if migration_mode == "gaussian":
 			self.migration.stars = gaussian_stars(radial_bins, 
-				 n_stars=n_stars, dt=dt)
+				 n_stars=n_stars, dt=dt, name=self.name)
 
 		else:
 			self.migration.stars = hydrodiskstars(radial_bins, N = N,

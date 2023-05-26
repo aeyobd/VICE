@@ -7,3 +7,17 @@ cdef extern from "../../src/utils.h":
 	double rand_range(double minimum, double maximum)
 	double randn()
 
+
+
+cdef class c_gaussian_stars:
+	cdef double[:] _radial_bins
+	cdef int n_bins
+	cdef int n_t
+	cdef int n_stars
+	cdef Py_ssize_t N_idx
+	cdef double dt
+	cdef double[:] radii
+	cdef double sigma_R
+	cdef double tau_R
+	cdef bint _write
+	cdef char * filename

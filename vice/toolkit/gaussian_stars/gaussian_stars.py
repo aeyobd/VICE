@@ -60,16 +60,16 @@ class gaussian_stars:
 	"""
 
 
-	def __init__(self, rad_bins, n_stars=1, dt=0.01, t_end=13.5, tau_R=8,
+	def __init__(self, rad_bins, name="example", n_stars=1, dt=0.01, t_end=13.5, tau_R=8,
 			  sigma_R=3.6):
 		if isinstance(rad_bins, list):
 			rad_bins = np.array(rad_bins)
 		self.__c_version = c_gaussian_stars(rad_bins, n_stars=n_stars, 
-			  dt=dt, t_end=t_end)
+			  dt=dt, t_end=t_end, name=name)
 
 
 	def __call__(self, zone, tform, time, n=0):
-		return self.__c_version.__call__(zone, tform, time, n=0)
+		return self.__c_version.__call__(zone, tform, time, n=n)
 
 
 	def __enter__(self):
@@ -80,6 +80,7 @@ class gaussian_stars:
 	def __exit__(self, exc_type, exc_value, exc_tb):
 		# Raises all exceptions inside a with statement
 		return exc_value is None
+
 
 
 	@property
@@ -108,11 +109,11 @@ class gaussian_stars:
 
 	@property
 	def write(self):
-		return self._write
+		return self.__c_version.write
 
 	@write.setter
 	def write(self, a):
-		self._write = a
+		self.__c_version.write = a
 	
 
 

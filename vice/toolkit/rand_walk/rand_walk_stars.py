@@ -1,9 +1,9 @@
 from __future__ import absolute_import
-from ._gaussian_stars import c_gaussian_stars
+from ._rand_walk_stars import c_rand_walk_stars
 import numpy as np
 
 
-class gaussian_stars:
+class rand_walk_stars:
 
 	r"""
 	A stellar migration scheme based on gaussian pertubations of stars at 
@@ -60,10 +60,12 @@ class gaussian_stars:
 	"""
 
 
-	def __init__(self, rad_bins, **kwargs):
+	def __init__(self, rad_bins, name=None, **kwargs):
 		if isinstance(rad_bins, list):
 			rad_bins = np.array(rad_bins)
-		self.__c_version = c_gaussian_stars(rad_bins, **kwargs)
+		if name is not None:
+			filename = name + "_rand_walks.dat"
+		self.__c_version = c_rand_walk_stars(rad_bins, filename=filename, **kwargs)
 
 
 	def __call__(self, zone, tform, time, n=0):

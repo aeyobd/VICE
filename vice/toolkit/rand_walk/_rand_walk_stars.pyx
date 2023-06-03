@@ -3,54 +3,65 @@
 from __future__ import absolute_import
 from ..._globals import _DIRECTORY_
 from ...core import _pyutils
-from ...core.dataframe import base as dataframe
-import os
+from ...core cimport _cutils
 
 
-import numpy as np
+from libc.stdlib cimport malloc, free
 
-
-from . cimport _gaussian_stars
+from . cimport _rand_walk_stars
 
 
 
-cdef class c_gaussian_stars:
+cdef class c_rand_walk_stars:
 	"""
-	The C-implementation of the gaussian_stars object. See python version for
+	The C-implementation of the rand_walk_stars object. See python version for
 	documentation.
 	"""
+	cdef double * _radial_bins
+	cdef int n_bins
+	cdef int n_t
+	cdef int n_stars
+	cdef size_t N_idx
+	cdef double dt
+	cdef double * radii
+	cdef double sigma_R
+	cdef double tau_R
+	cdef bint _write
+	cdef char* filename
 
 
 	def __cinit__(self, radbins, int n_stars=2, 
-				  double dt=0.01, double t_end=13.5, name="example",
+				  double dt=0.01, double t_end=13.5, filename=None, 
 				  double sigma_R=1.27):
-		self.n_bins = len(radbins) - 1
-		self._radial_bins = radbins
-		self.n_t = np.round(t_end/dt)
+		self.radial_bins = radbins
+		self.n_t = round(t_end/dt)
 		self.n_stars = n_stars
 		self.dt = dt
 
-		cdef i_test = self.n_t * self.n_stars * self.n_bins
+		cdef int i_test = self.n_t * self.n_stars * self.n_bins
 		if i_test < 0:
 			raise ValueError("negative max index, ", i_test)
-		self.N_idx = <Py_ssize_t> i_test
+		self.N_idx = <size_t> i_test
 
-		self.radii = np.zeros(self.N_idx, dtype=np.double)
+		cdef double * arr = <double *> malloc(self.N_idx * sizeof(double))
+		if not arr:
+			raise MemoryError()
+
+		self.radii = arr
 
 		self.sigma_R = 1.27 # kpc Gyr^-0.5
 		self._write = False
+		cdef size_t f_len
+		if filename is not None:
+			f_len = <size_t> (2*len(filename))
+			self.filename = <char *> malloc(f_len * sizeof(char))
+			_cutils.set_string(self.filename, filename)
+			self.write = True
 
-		self.filename = name + "_rand_walks.txt"
-		self.write = True
 
-
-
-
-
-# 	def __init__(self, radbins, int n_stars=1, 
-# 				 double dt=0.01, double t_end=13.5, str name="example"):
-# 
-# 		pass
+	def __dealloc__(self):
+		free(self.radii)
+		free(self._radial_bins)
 
 
 	def __call__(self, int zone, double tform, double time, *, int n=0):
@@ -60,22 +71,23 @@ cdef class c_gaussian_stars:
 
 		if not (0 <= zone < self.n_bins):
 			raise ValueError("Zone out of range: %d" % (zone))
+		cdef Py_ssize_t zone_idx = zone
 
 		if tform > time:
 			raise ValueError("Time out of range: %f < tform = %f" 
 					% (time, tform))
 
-		birth_radius = (self.radial_bins[zone]
-						 + self.radial_bins[zone + 1]) / 2
+		birth_radius = (self.radial_bins[zone_idx]
+						 + self.radial_bins[zone_idx + 1]) / 2
 
-		cdef Py_ssize_t N
-		N = self.get_idx(zone, tform, n=n)
+		cdef size_t N
+		N = self.get_idx(zone_idx, tform, n=n)
 
 		if tform == time:
 			self.radii[N] = birth_radius
 			bin_id =  zone
 		else:
-			self.radii[N] = np.abs(self.dR() + self.radii[N])
+			self.radii[N] = abs(self.dR() + self.radii[N])
 			if self.radii[N] > 20:
 				self.radii[N] = 20
 			
@@ -90,6 +102,7 @@ cdef class c_gaussian_stars:
 			
 		return bin_id
 
+
 	def write_migration(self, s):
 		if self.filename is None:
 			return
@@ -100,22 +113,25 @@ cdef class c_gaussian_stars:
 
 	def get_idx(self, int zone, double tform, *, int n=0):
 		cdef int t_int
-		cdef Py_ssize_t N	
-		cdef int Na
+		cdef size_t N	
+		cdef int N_int
 
-		t_int = np.round(tform / self.dt) 
+		t_int = round(tform / self.dt) 
 		if t_int > self.n_t:
 			raise ValueError("time out of range %f" % tform)
 		if n > self.n_stars:
 			raise ValueError("n out of range %i" % n)
 
 
-		Na = (t_int * self.n_bins * self.n_stars 
+		N_int = (t_int * self.n_bins * self.n_stars 
 			+ zone * self.n_stars
 			+ n)
-		if Na < 0 or Na > self.N_idx:
-			raise ValueError(f"got out of range index {Na}, values zone={zone}, tform={tform}, n={n}")
-		N = Na
+		if N_int < 0:
+			raise ValueError(f"Index must be positive, instead got {N_int}")
+		N = <size_t> N_int
+
+		if N > self.N_idx:
+			raise ValueError(f"got out of range index {N}, values zone={zone}, tform={tform}, n={n}")
 
 		return N
 
@@ -132,7 +148,7 @@ cdef class c_gaussian_stars:
 
 	def dR(self):
 		cdef double r
-		r = np.random.normal() * np.sqrt(self.dt) * self.sigma_R
+		r = randn() * self.dt**0.5 * self.sigma_R
 		return r
 
 
@@ -156,8 +172,16 @@ cdef class c_gaussian_stars:
 
 	@property
 	def radial_bins(self):
-		return self._radial_bins
+		return [self._radial_bins[i] for i in range(self.n_bins + 1)]
 
 
-
+	@radial_bins.setter
+	def radial_bins(self, value):
+		value = _pyutils.copy_array_like_object(value)
+		_pyutils.numeric_check(value, TypeError,
+			"Non-numerical value detected.")
+		value = sorted(value)
+		self.n_bins = len(value) - 1
+		if self._radial_bins is not NULL: free(self._radial_bins)
+		self._radial_bins = _cutils.copy_pylist(value)
 

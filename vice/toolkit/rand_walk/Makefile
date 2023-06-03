@@ -5,7 +5,7 @@ SUBDIRS 			:= $(filter-out __pycache__/, $(wildcard */))
 
 .PHONY: clean
 clean:
-	@ echo Cleaning vice/toolkit/gaussian_stars/
+	@ echo Cleaning vice/toolkit/rand_walk/
 	@ rm -f *.so
 	@ if [ -d "__pycache__" ] ; then \
 		rm -rf __pycache__ ; \

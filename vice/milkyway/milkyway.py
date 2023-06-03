@@ -6,7 +6,7 @@ from ..core.multizone import multizone
 from ..core.dataframe._builtin_dataframes import solar_z
 from ..core import _pyutils
 from ..toolkit.hydrodisk import hydrodiskstars
-from ..toolkit.gaussian_stars import gaussian_stars
+from ..toolkit.rand_walk import rand_walk_stars
 from ..toolkit.J21_sf_law import J21_sf_law
 from .. import yields
 from .utils import mass_from_surface_density
@@ -69,7 +69,7 @@ class milkyway(multizone):
 		A string denoting the time-dependence of stellar migration. This
 		keyword will be passed to the ``hydrodiskstars`` object implementing
 		the stellar migration scheme.
-		In the special case migration_mode="gaussian", the time dependence
+		In the special case migration_mode="rand_walk", the time dependence
 		instead is based on Frankel++19, 20's stellar migration model, 
 		where each particle's radial position is perturbed by a normal
 		distribution at each timestep.
@@ -215,8 +215,8 @@ class milkyway(multizone):
 		
 		self.dt = dt
 
-		if migration_mode == "gaussian":
-			self.migration.stars = gaussian_stars(radial_bins, 
+		if migration_mode == "rand_walk":
+			self.migration.stars = rand_walk_stars(radial_bins, 
 				 n_stars=n_stars, dt=dt, name=self.name)
 
 		else:

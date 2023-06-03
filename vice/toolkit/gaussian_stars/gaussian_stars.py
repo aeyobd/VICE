@@ -60,12 +60,10 @@ class gaussian_stars:
 	"""
 
 
-	def __init__(self, rad_bins, name="example", n_stars=1, dt=0.01, t_end=13.5, tau_R=8,
-			  sigma_R=3.6):
+	def __init__(self, rad_bins, **kwargs):
 		if isinstance(rad_bins, list):
 			rad_bins = np.array(rad_bins)
-		self.__c_version = c_gaussian_stars(rad_bins, n_stars=n_stars, 
-			  dt=dt, t_end=t_end, name=name)
+		self.__c_version = c_gaussian_stars(rad_bins, **kwargs)
 
 
 	def __call__(self, zone, tform, time, n=0):

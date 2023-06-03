@@ -1,4 +1,11 @@
 
 
-make with python -m build (maybe not needed ?)
-install with pip install .
+to clean 
+
+python setup.y develop --uninstall
+
+make clean distclean 
+
+
+
+python setup.py build openmp develop install --user

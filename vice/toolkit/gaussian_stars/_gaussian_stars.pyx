@@ -22,7 +22,8 @@ cdef class c_gaussian_stars:
 
 
 	def __cinit__(self, radbins, int n_stars=2, 
-				  double dt=0.01, double t_end=13.5, name="example"):
+				  double dt=0.01, double t_end=13.5, name="example",
+				  double sigma_R=1.27):
 		self.n_bins = len(radbins) - 1
 		self._radial_bins = radbins
 		self.n_t = np.round(t_end/dt)
@@ -36,15 +37,12 @@ cdef class c_gaussian_stars:
 
 		self.radii = np.zeros(self.N_idx, dtype=np.double)
 
-		self.sigma_R = 3.6
-		self.tau_R = 8
+		self.sigma_R = 1.27 # kpc Gyr^-0.5
 		self._write = False
 
-		dirname = (name + ".vice")
-		if os.path.exists(dirname):
-			fname = os.path.join(dirname, "gauss_migration.txt")
-			self.filename = fname
-			self.write = True
+		self.filename = name + "_rand_walks.txt"
+		self.write = True
+
 
 
 
@@ -93,6 +91,9 @@ cdef class c_gaussian_stars:
 		return bin_id
 
 	def write_migration(self, s):
+		if self.filename is None:
+			return
+
 		with open(self.filename, "a") as f:
 			f.write(s)
 
@@ -131,11 +132,13 @@ cdef class c_gaussian_stars:
 
 	def dR(self):
 		cdef double r
-		r = np.random.normal() * np.sqrt(self.dt/self.tau_R) * self.sigma_R
+		r = np.random.normal() * np.sqrt(self.dt) * self.sigma_R
 		return r
 
 
 	def write_header(self):
+		if self.filename is None:
+			return
 		with open(self.filename, "w") as f:
 			f.write("N,t,R,zone\n")
 

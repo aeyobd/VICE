@@ -170,6 +170,31 @@ extern unsigned short test_rand_range(void) {
 }
 
 
+extern unsigned short test_randn(void) {
+	int n_trials = 10000;
+	double s_x = 0;
+	double s_sq = 0;
+	double x=0;
+	double tol=1e-2;
+
+	for (int i=0; i<n_trials; i++) {
+		x = randn();
+		s_x += x;
+		s_sq += x*x;
+	}
+
+    double mean = s_x/((double) n_trials);
+    double std = sqrt( s_sq/((double) n_trials) );
+
+    if (abs(mean) > tol)
+        return 0u;
+    if (abs(std - 1) > tol)
+        return 0u;
+
+    return 1u;
+}
+
+
 /*
  * Test the 1-D interpolation function vice/src/utils.h
  *

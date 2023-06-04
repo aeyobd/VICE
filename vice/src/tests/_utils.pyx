@@ -16,7 +16,8 @@ __all__ = [
 	"test_bin_center_calculator",
 	"test_summation",
 	"test_string_copier",
-	"test_maximum"
+	"test_maximum",
+    "test_randn",
 ]
 from ...testing import moduletest
 from ...testing import unittest
@@ -43,7 +44,8 @@ def test():
 			test_bin_center_calculator(),
 			test_summation(),
 			test_string_copier(),
-			test_maximum()
+			test_maximum(),
+            test_randn(),
 		]
 	]
 
@@ -54,6 +56,13 @@ def test_choose_operation():
 	Tests the choose operation at vice/src/utils.h
 	"""
 	return ["vice.src.utils.choose", _utils.test_choose]
+
+@unittest
+def test_randn_val():
+	"""
+	Tests the randn function at vice/src/utils.h
+	"""
+	return ["vice.src.utils.randn", _utils.test_randn]
 
 
 @unittest
@@ -159,3 +168,7 @@ def test_maximum():
 	"""
 	return ["vice.src.utils.max", _utils.test_max]
 
+
+
+def get_randn():
+	return _utils.randn()

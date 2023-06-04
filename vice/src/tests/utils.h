@@ -61,6 +61,9 @@ extern unsigned short test_simple_hash(void);
  */
 extern unsigned short test_rand_range(void);
 
+
+extern unsigned short test_randn(void);
+
 /*
  * Test the 1-D interpolation function vice/src/utils.h
  *

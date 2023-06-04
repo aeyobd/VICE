@@ -29,7 +29,7 @@ class rand_walk_stars:
 	t_end : float [Default]
 	tau_R: float [default : 8]
 		Migration timescale in Gyr
-	sigma_R: float [default : 3.6]
+	sigma_R: float [default : 1.27]
 		Migration distance scale in kpc
 	
 

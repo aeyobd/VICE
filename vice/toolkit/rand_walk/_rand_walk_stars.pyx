@@ -49,7 +49,7 @@ cdef class c_rand_walk_stars:
 
 		self.radii = arr
 
-		self.sigma_R = 1.27 # kpc Gyr^-0.5
+		self.sigma_R = sigma_R
 		self._write = False
 		cdef size_t f_len
 		if filename is not None:

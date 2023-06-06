@@ -1,76 +1,24 @@
-r"""
-VICE setup.py file
-
-If building VICE from source, first run ``make`` in this directory before
-installing VICE with the conventional command ``python setup.py install``.
-
-In addition to the command-line utilities provided by ``setuptools``, this file
-also provides
-
-Install Options
----------------
--j N        : Run build in parallel across N cores
---user      : Install to ~/.local directory
--q --quiet  : Run the installation non-verbosely
-ext=        : Build and install specific extension
-
-Users should invoke ``python setup.py install openmp`` when they want to link
-VICE with the openMP library to enable multithreading. This can also be
-achieved by setting the environment variable "VICE_ENABLE_OPENMP" to "true".
-
-``python setup.py install extensions`` should be invoked only after running
-``python setup.py install`` as this will re-compile only the specified
-extensions. As such, this utility is most useful to users who are modifying
-VICE's source code and therefore in practice, it is most often invoked
-alongside ``python setup.py develop``. The same effect as
-``python setup.py extensions`` can also be achieved by setting the environment
-variable "VICE_SETUP_EXTENSIONS" to the same comma-separated list of extensions
-to recompile.
-
-For additional information, run ``python setup.py openmp --help`` and
-``python setup.py extensions --help``. For information on the command-line
-utilities provided by ``setuptools``, run ``python setup.py --help-commands``.
-
-After running this file, ``make clean`` will remove all of the Cython and
-compiler outputs from the source tree. Note however that this defeats the
-purpose of ``python setup.py develop``, so if VICE is being installed in
-developer's mode, ``make clean`` should only be ran after running
-``python setup.py develop --uninstall``.
-
-Raises
-------
-* RuntimeError
-	- The minimum version of Python is not satisfied (3.7.0)
-	- The specified Unix C compiler is not 'gcc' or 'clang'
-	- Invalid name for a specified extension to reinstall
-* OSError
-	- This file is being ran from within a Windows OS (POSIX is required)
-"""
-
-# this version requires python >= 3.7.0
-MIN_PYTHON_VERSION = "3.7.0"
 from subprocess import Popen, PIPE
 import sys
 import os
+
 if os.name != "posix": raise OSError("""\
 Sorry, Windows is not supported. Please install and run VICE from within the \
 Windows Subsystem for Linux.""")
-if sys.version_info[:] < tuple(
-	[int(_) for _ in MIN_PYTHON_VERSION.split('.')]):
-	raise RuntimeError("""This version of VICE requires python >= %s. \
-Current version: %d.%d.%d.""" % (MIN_PYTHON_VERSION, sys.version_info.major,
-	sys.version_info.minor, sys.version_info.micro))
-try:
-	ModuleNotFoundError
-except NameError:
-	ModuleNotFoundError = ImportError
+
+
 from setuptools import setup, Extension, Command
 from setuptools.command.build_ext import build_ext as _build_ext
 
 # partial import
 import builtins
 builtins.__VICE_SETUP__ = True
-import vice
+
+
+try:
+	ModuleNotFoundError
+except NameError:
+	ModuleNotFoundError = ImportError
 
 # ---------------------------- PACKAGE METADATA ---------------------------- #
 package_name = "vice"
@@ -78,61 +26,6 @@ repo_url = "https://github.com/giganano/VICE.git"
 pypi_url = "https://pypi.org/project/vice/"
 docs_url = "https://vice-astro.readthedocs.io/"
 bugs_url = "https://github.com/giganano/VICE/issues"
-
-CLASSIFIERS = """\
-Development Status :: 5 - Production/Stable
-Intended Audience :: Science/Research
-License :: OSI Approved :: MIT License
-Natural Language :: English
-Operating System :: MacOS
-Operating System :: POSIX
-Operating System :: Unix
-Programming Language :: C
-Programming Language :: Cython
-Programming Language :: Python
-Programming Language :: Python :: 3
-Programming Language :: Python :: 3.7
-Programming Language :: Python :: 3.8
-Programming Language :: Python :: 3.9
-Programming Language :: Python :: 3.10
-Programming Language :: Python :: 3 :: Only
-Programming Language :: Python :: Implementation :: CPython
-Topic :: Scientific/Engineering
-Topic :: Scientific/Engineering :: Astronomy
-Topic :: Scientific/Engineering :: Physics
-"""
-
-# Version info
-# Note that only one of DEV, ALPHA, BETA, RC, and POST can be anything other
-# than None, in which case it must be an ``int``.
-# Changes to these numbers also require changes to ./docs/src/index.rst and
-# ./docs/src/cover.tex
-MAJOR			= 1
-MINOR			= 4
-MICRO			= 0
-DEV				= 1
-ALPHA			= None
-BETA			= None
-RC				= None
-POST			= None
-ISRELEASED		= True
-VERSION			= "%d.%d.%d" % (MAJOR, MINOR, MICRO)
-if DEV is not None:
-	assert isinstance(DEV, int), "Invalid version information"
-	VERSION += ".dev%d" % (DEV)
-elif ALPHA is not None:
-	assert isinstance(ALPHA, int), "Invalid version information"
-	VERSION += "a%d" % (ALPHA)
-elif BETA is not None:
-	assert isinstance(BETA, int), "Invalid version information"
-	VERSION += "b%d" % (BETA)
-elif RC is not None:
-	assert isinstance(RC, int), "Invalid version information"
-	VERSION += "rc%d" % (RC)
-elif POST is not None:
-	assert isinstance(POST, int), "Invalid version information"
-	VERSION += ".post%d" % (POST)
-else: pass
 
 
 class build_ext(_build_ext):
@@ -228,53 +121,10 @@ variable 'CC'.""" % (os.environ["CC"]))
 		super().run()
 
 
-class extensions(Command):
 
-	r"""
-	A ``setuptools`` command that allows the user to specify which extensions
-	should be compiled.
-
-	Run ``python setup.py extensions --help`` for more info.
-	"""
-
-	description = "Compile and (re-)install specific VICE extensions."
-
-	user_options = [
-		("ext=", "e", """\
-The extension to rebuild. If multiple extensions should be compiled, they can \
-be passed as a comma-separated list (no spaces!). The name of an extension can \
-be determined by the relative path to a .pyx file by changing each '/' to a \
-'.' (e.g. vice/core/singlezone/_singlezone.pyx -> \
-vice.core.singlezone._singlezone). The extension(s) to build can also be set \
-by assigning the environment variable 'VICE_SETUP_EXTENSIONS' to the same \
-value. In the event that this environment variable exists and 'setup.py \
-extensions' is also ran, the value passed to 'setup.py extensions' will take \
-precedent. Users may also override the environment variable \
-'VICE_SETUP_EXTENSIONS' to build all of them with '--ext=all' or '-e all'.""")
-	]
-
-	def initialize_options(self):
-		self.ext = None
-
-	def finalize_options(self):
-		# No error handling necessary as unrecognized extensions will have no
-		# impact. This feature works by *filtering out* from the list of all
-		# extensions determined by the ``find_extensions`` function.
-		pass
-
-	def run(self):
-		if self.ext is not None:
-			if self.ext != "all":
-				os.environ["VICE_SETUP_EXTENSIONS"] = self.ext
-			else:
-				if "VICE_SETUP_EXTENSIONS" in os.environ.keys():
-					del os.environ["VICE_SETUP_EXTENSIONS"]
-				else: pass
-		else: pass
 
 
 class openmp(Command):
-
 	r"""
 	A ``setuptools`` command that sets the environment variable
 	``VICE_ENABLE_OPENMP`` to "true", which is used by the sub-classed
@@ -481,7 +331,7 @@ and then reattempting your VICE installation. If you continue to have trouble \
 linking VICE with OpenMP, then please open an issue at %s.""" % (bugs_url))
 
 
-def find_extensions(path = './vice'):
+def find_extensions(path = './src/'):
 	r"""
 	Finds all of VICE's extensions. If the user is either running
 	``setup.py extensions`` or has (equivalently) assigned the environment
@@ -507,13 +357,13 @@ def find_extensions(path = './vice'):
 					i.split('.')[0])
 				# The source files in the C library
 				src_files = ["%s/%s" % (root[2:], i)]
-				src_files += vice.find_c_extensions(name)
+				src_files += find_c_extensions(name)
 				extensions.append(Extension(name, src_files))
 			else: continue
 	return extensions
 
 
-def find_packages(path = './vice'):
+def find_packages(path = './src/vice'):
 	r"""
 	Finds each subpackage given the presence of an __init__.py file
 
@@ -611,73 +461,50 @@ MIN_PYTHON_VERSION = \"%(minversion)s\"
 			f.close()
 
 
-def set_path_variable(filename = "~/.bash_profile"):
-	r"""
-	Permanently adds ~/.local/bin/ to the user's $PATH for local
-	installations (i.e. with [--user] directive).
-
-	Parameters
-	----------
-	filename : str [default : "~/.bash_profile"]
-		The filename to put the PATH modification in.
-	"""
-	if ("--user" in sys.argv and "%s/.local/bin" % (os.environ["HOME"]) not in
-		os.environ["PATH"].split(':')):
-		cnt = """\
-
-# This line added by vice setup.py %(version)s
-export PATH=$HOME/.local/bin:$PATH
-
-"""
-		cmd = "echo \'%s\' >> %s" % (cnt % {"version": VERSION}, filename)
-		os.system(cmd)
-	else:
-		pass
+# def set_path_variable(filename = "~/.bash_profile"):
+# 	r"""
+# 	Permanently adds ~/.local/bin/ to the user's $PATH for local
+# 	installations (i.e. with [--user] directive).
+# 
+# 	Parameters
+# 	----------
+# 	filename : str [default : "~/.bash_profile"]
+# 		The filename to put the PATH modification in.
+# 	"""
+# 	if ("--user" in sys.argv and "%s/.local/bin" % (os.environ["HOME"]) not in
+# 		os.environ["PATH"].split(':')):
+# 		cnt = """\
+# 
+# # This line added by vice setup.py %(version)s
+# export PATH=$HOME/.local/bin:$PATH
+# 
+# """
+# 		cmd = "echo \'%s\' >> %s" % (cnt % {"version": VERSION}, filename)
+# 		os.system(cmd)
+# 	else:
+# 		pass
 
 
 def setup_package():
 	r"""
 	Build and install VICE.
 	"""
-	src_path = os.path.dirname(os.path.abspath(sys.argv[0]))
-	old_path = os.getcwd()
-	os.chdir(src_path)
-	sys.path.insert(0, src_path)
+	# os.environ["VICE_ENABLE_OPENMP"] = "true"
 
 	# directories with .h header files, req'd by setup
 	include_dirs = []
-	for root, dirs, files in os.walk("./vice/src"):
+	for root, dirs, files in os.walk(".src/vice/src"):
 		if "__pycache__" not in root: include_dirs.append(root)
 
-	# Keywords to the setup() call
 	metadata = dict(
-		name = package_name,
-		version = VERSION,
-		author = "James W. Johnson",
-		author_email = "giganano9@gmail.com",
-		maintainer = "James W. Johnson",
-		maintainer_email = "giganano9@gmail.com",
-		url = repo_url,
-		project_urls = {
-			"Bug Tracker": bugs_url,
-			"Documentation": docs_url,
-			"Source Code": repo_url
-		},
-		description = "Galactic Chemical Evolution Integrator",
-		long_description = vice._LONG_DESCRIPTION_,
-		classifiers = CLASSIFIERS.split('\n'),
-		license = "MIT",
+		# long_description = _LONG_DESCRIPTION_,
 		platforms = ["Linux", "Mac OS X", "Unix"],
-		keywords = ["galaxies", "simulations", "abundances"],
-		provides = [package_name],
 		cmdclass = {
 			"build_ext": build_ext,
-			"extensions": extensions,
 			"openmp": openmp
 		},
 		packages = find_packages(),
 		package_data = find_package_data(),
-		scripts = ["bin/%s" % (i) for i in os.listdir("./bin/")],
 		ext_modules = find_extensions(),
 		include_dirs = include_dirs,
 		setup_requires = [
@@ -689,21 +516,15 @@ def setup_package():
 		verbose = "-q" not in sys.argv and "--quiet" not in sys.argv
 	)
 
-	try:
-		write_version_info() 	# Write the version file
-		setup(**metadata)
-		set_path_variable()
-	finally:
-		del sys.path[0]
-		os.chdir(old_path)
-	return
+
+	# set_path_variable()
+	setup(**metadata)
+
+	check_dill()
 
 
-if __name__ == "__main__":
-	setup_package()
-	del builtins.__VICE_SETUP__
 
-	# tell them if dill isn't installed if they're doing a source install
+def check_dill():
 	try:
 		import dill
 	except (ImportError, ModuleNotFoundError):
@@ -714,4 +535,579 @@ attributes with VICE outputs. It is recommended that VICE users install this
 package to make use of these features. This can be done via 'pip install dill'.
 ===============================================================================\
 """)
+
+
+def find_c_extensions(name):
+    r"""
+    Finds the paths to the C extensions required for the specified
+    extension based on the _CFILES_ mapping in
+    vice/_build_utils/c_extensions.py.
+
+    Parameters
+    ----------
+    name : str
+        The name of the extension to compile.
+
+    Returns
+    -------
+    exts : list
+        A list of the relative paths to all C extensions.
+
+    Notes
+    -----
+    If the extension does not have an entry in the _CFILES_ dictionary,
+    VICE will compile the extension with ALL C files in it's C library,
+    omitting those under a directory named "tests" if "tests" is not in the
+    name of the extension.
+    """
+    extensions = []
+    if name in _CFILES_.keys():
+        for item in _CFILES_[name]:
+            if os.path.exists(item) and (item.endswith(".c")):
+                extensions.append(item)
+            elif os.path.isdir(item):
+                for i in os.listdir(item):
+                    if i.endswith(".c"): extensions.append("%s/%s" % (
+                        item, i))
+            else:
+                raise SystemError("""Internal Error. Invalid C Extension \
+listing for extension %s: %s""" % (name, item))
+    else:
+        path = os.path.dirname(os.path.abspath(__file__))
+        for root, dirs, files in os.walk(path):
+            for i in files:
+                if i.endswith(".c"):
+                    if "tests" in root and "tests" not in name:
+                        continue
+                    else:
+                        extensions.append(
+                            ("%s/%s" % (root, i)).replace(os.getcwd(), '.')
+                        )
+                else: pass
+    
+    return extensions
+
+_CFILES_ = {
+	"vice.core._cutils": [
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/io/progressbar.c",
+		"./vice/src/multithread.c",
+		"./vice/src/utils.c"
+	],
+	"vice.core._mlr": [
+		"./vice/src/ssp/mlr",
+		"./vice/src/ssp/mlr.c",
+		"./vice/src/objects/interp_scheme_1d.c",
+		"./vice/src/objects/interp_scheme_2d.c",
+		"./vice/src/toolkit/interp_scheme_1d.c",
+		"./vice/src/toolkit/interp_scheme_2d.c",
+		"./vice/src/io/utils.c",
+		"./vice/src/utils.c"
+	],
+	"vice.core.dataframe._agb_yield_settings": [],
+	"vice.core.dataframe._base": [],
+	"vice.core.dataframe._ccsn_yield_table": [],
+	"vice.core.dataframe._elemental_settings": [],
+	"vice.core.dataframe._entrainment": [],
+	"vice.core.dataframe._evolutionary_settings": [],
+	"vice.core.dataframe._fromfile": [
+		"./vice/src/dataframe/calclogz.c",
+		"./vice/src/dataframe/calclookback.c",
+		"./vice/src/dataframe/calcz.c",
+		"./vice/src/dataframe/fromfile.c",
+		"./vice/src/dataframe/utils.c",
+		"./vice/src/objects/fromfile.c",
+		"./vice/src/io/utils.c",
+		"./vice/src/utils.c"
+	],
+	"vice.core.dataframe._history": [
+		"./vice/src/dataframe/calclogz.c",
+		"./vice/src/dataframe/calclookback.c",
+		"./vice/src/dataframe/calcz.c",
+		"./vice/src/dataframe/fromfile.c",
+		"./vice/src/dataframe/history.c",
+		"./vice/src/dataframe/utils.c",
+		"./vice/src/objects/fromfile.c",
+		"./vice/src/io/utils.c",
+		"./vice/src/utils.c"
+	],
+	"vice.core.dataframe._noncustomizable": [],
+	"vice.core.dataframe._saved_yields": [],
+	"vice.core.dataframe._tracers": [
+		"./vice/src/dataframe/calclogz.c",
+		"./vice/src/dataframe/calclookback.c",
+		"./vice/src/dataframe/calcz.c",
+		"./vice/src/dataframe/fromfile.c",
+		"./vice/src/dataframe/tracers.c",
+		"./vice/src/dataframe/utils.c",
+		"./vice/src/objects/fromfile.c",
+		"./vice/src/io/utils.c",
+		"./vice/src/utils.c"
+	],
+	"vice.core.dataframe._yield_settings": [],
+	"vice.core.multizone._migration": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.multizone._multizone": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.multizone._zone_array": [],
+	"vice.core.multizone.tests._multizone": [],
+	"vice.core.objects._imf": [
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/imf.c"
+	],
+	"vice.core.objects.tests._agb": [
+		"./vice/src/objects/agb.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/objects/interp_scheme_2d.c",
+		"./vice/src/objects/tests/agb.c",
+		"./vice/src/objects/tests/callback_1arg.c",
+		"./vice/src/objects/tests/callback_2arg.c",
+		"./vice/src/objects/tests/interp_scheme_2d.c"
+	],
+	"vice.core.objects.tests._callback_1arg": [
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/tests/callback_1arg.c"
+	],
+	"vice.core.objects.tests._callback_2arg": [
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/objects/tests/callback_1arg.c",
+		"./vice/src/objects/tests/callback_2arg.c"
+	],
+	"vice.core.objects.tests._ccsne": [
+		"./vice/src/objects/ccsne.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/tests/ccsne.c",
+		"./vice/src/objects/tests/callback_1arg.c"
+	],
+	"vice.core.objects.tests._channel": [
+		"./vice/src/objects/channel.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/tests/channel.c",
+		"./vice/src/objects/tests/callback_1arg.c"
+	],
+	"vice.core.objects.tests._element": [
+		"./vice/src/objects/element.c",
+		"./vice/src/objects/agb.c",
+		"./vice/src/objects/ccsne.c",
+		"./vice/src/objects/sneia.c",
+		"./vice/src/objects/channel.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/objects/interp_scheme_2d.c",
+		"./vice/src/objects/tests/element.c",
+		"./vice/src/objects/tests/agb.c",
+		"./vice/src/objects/tests/ccsne.c",
+		"./vice/src/objects/tests/sneia.c",
+		"./vice/src/objects/tests/channel.c",
+		"./vice/src/objects/tests/callback_1arg.c",
+		"./vice/src/objects/tests/callback_2arg.c",
+		"./vice/src/objects/tests/interp_scheme_2d.c"
+	],
+	"vice.core.objects.tests._fromfile": [
+		"./vice/src/objects/fromfile.c",
+		"./vice/src/objects/tests/fromfile.c"
+	],
+	"vice.core.objects.tests._hydrodiskstars": [
+		"./vice/src/objects/hydrodiskstars.c",
+		"./vice/src/objects/tests/hydrodiskstars.c"
+	],
+	"vice.core.objects.tests._imf": [
+		"./vice/src/objects/imf.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/tests/imf.c",
+		"./vice/src/objects/tests/callback_1arg.c"
+	],
+	"vice.core.objects.tests._integral": [
+		"./vice/src/objects/integral.c",
+		"./vice/src/objects/tests/integral.c"
+	],
+	"vice.core.objects.tests._interp_scheme_1d": [
+		"./vice/src/objects/interp_scheme_1d.c",
+		"./vice/src/objects/tests/interp_scheme_1d.c"
+	],
+	"vice.core.objects.tests._interp_scheme_2d": [
+		"./vice/src/objects/interp_scheme_2d.c",
+		"./vice/src/objects/tests/interp_scheme_2d.c"
+	],
+	"vice.core.objects.tests._ism": [
+		"./vice/src/objects/ism.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/objects/tests/ism.c",
+		"./vice/src/objects/tests/callback_1arg.c",
+		"./vice/src/objects/tests/callback_2arg.c"
+	],
+	"vice.core.objects.tests._mdf": [
+		"./vice/src/objects/mdf.c",
+		"./vice/src/objects/tests/mdf.c"
+	],
+	"vice.core.objects.tests._migration": [
+		"./vice/src/objects/migration.c",
+		"./vice/src/objects/tracer.c",
+		"./vice/src/objects/tests/migration.c"
+	],
+	"vice.core.objects.tests._multizone": [
+		"./vice/src/objects/multizone.c",
+		"./vice/src/objects/migration.c",
+		"./vice/src/objects/tracer.c",
+		"./vice/src/objects/tests/multizone.c"
+	],
+	"vice.core.objects.tests._singlezone": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/objects/tests",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.objects.tests._sneia": [
+		"./vice/src/objects/sneia.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/tests/sneia.c",
+		"./vice/src/objects/tests/callback_1arg.c"
+	],
+	"vice.core.objects.tests._ssp": [
+		"./vice/src/objects/ssp.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/imf.c",
+		"./vice/src/objects/tests/ssp.c",
+		"./vice/src/objects/tests/callback_1arg.c",
+		"./vice/src/objects/tests/imf.c"
+	],
+	"vice.core.objects.tests._tracer": [
+		"./vice/src/objects/tracer.c",
+		"./vice/src/objects/tests/tracer.c"
+	],
+	"vice.core.outputs._history": [],
+	"vice.core.outputs._mdf": [],
+	"vice.core.outputs._multioutput": [],
+	"vice.core.outputs._output": [],
+	"vice.core.outputs._tracers": [],
+	"vice.core.singlezone._singlezone": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.singlezone.tests._singlezone": [],
+	"vice.core.ssp._crf": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.ssp._imf": [
+		"./vice/src/imf.c",
+		"./vice/src/callback.c",
+		"./vice/src/utils.c"
+	],
+	"vice.core.ssp._msmf": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.ssp._ssp": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.ssp.tests._crf": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/objects/tests",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/ssp/tests",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.ssp.tests._msmf": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/objects/tests",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/ssp/tests",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.ssp.tests._remnants": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/objects/tests",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/ssp/tests",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.core.tests._cutils": [
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/objects/imf.c"
+	],
+	"vice.src.io.tests._agb": [
+		"./vice/src/io/tests/agb.c",
+		"./vice/src/io/agb.c",
+		"./vice/src/objects/agb.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/objects/ccsne.c",
+		"./vice/src/objects/channel.c",
+		"./vice/src/objects/element.c",
+		"./vice/src/objects/interp_scheme_2d.c",
+		"./vice/src/objects/sneia.c",
+		"./vice/src/io/utils.c"
+	],
+	"vice.src.io.tests._ccsne": [
+		"./vice/src/io/tests/ccsne.c",
+		"./vice/src/io/ccsne.c",
+		"./vice/src/io/utils.c"
+	],
+	"vice.src.io.tests._sneia": [
+		"./vice/src/io/tests/sneia.c",
+		"./vice/src/io/sneia.c",
+		"./vice/src/io/utils.c"
+	],
+	"vice.src.io.tests._utils": [
+		"./vice/src/io/tests/utils.c",
+		"./vice/src/io/utils.c"
+	],
+	"vice.src.multizone.tests.cases._generic": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/multizone/tests",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.src.multizone.tests.cases._no_migration": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/multizone/tests",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.src.multizone.tests.cases._separation": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/multizone/tests",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.src.singlezone.tests._singlezone": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/singlezone/tests/agb.c",
+		"./vice/src/singlezone/tests/ccsne.c",
+		"./vice/src/singlezone/tests/element.c",
+		"./vice/src/singlezone/tests/ism.c",
+		"./vice/src/singlezone/tests/mdf.c",
+		"./vice/src/singlezone/tests/recycling.c",
+		"./vice/src/singlezone/tests/singlezone.c",
+		"./vice/src/singlezone/tests/sneia.c",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.src.singlezone.tests.cases._generic": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/singlezone/tests",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.src.singlezone.tests.cases._max_age_ssp": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/singlezone/tests",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.src.singlezone.tests.cases._quiescence": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/singlezone/tests",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.src.singlezone.tests.cases._zero_age_ssp": [
+		"./vice/src/io",
+		"./vice/src/multizone",
+		"./vice/src/objects",
+		"./vice/src/singlezone",
+		"./vice/src/singlezone/tests",
+		"./vice/src/ssp",
+		"./vice/src/ssp/mlr",
+		"./vice/src/toolkit",
+		"./vice/src/yields",
+		"./vice/src"
+	],
+	"vice.src.tests._callback": [
+		"./vice/src/tests/callback.c",
+		"./vice/src/callback.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/objects/tests/callback_1arg.c",
+		"./vice/src/objects/tests/callback_2arg.c"
+	],
+	"vice.src.tests._imf": [
+		"./vice/src/tests/imf.c",
+		"./vice/src/imf.c",
+		"./vice/src/callback.c",
+		"./vice/src/utils.c",
+		"./vice/src/objects/imf.c",
+		"./vice/src/objects/callback_1arg.c"
+	],
+	"vice.src.tests._stats": [
+		"./vice/src/tests/stats.c",
+		"./vice/src/stats.c",
+		"./vice/src/utils.c"
+	],
+	"vice.src.tests._utils": [
+		"./vice/src/tests/utils.c",
+		"./vice/src/utils.c"
+	],
+	"vice.toolkit.hydrodisk._hydrodiskstars": [
+		"./vice/src/objects/hydrodiskstars.c",
+		"./vice/src/toolkit/hydrodiskstars.c",
+		"./vice/src/io/utils.c",
+		"./vice/src/utils.c"
+	],
+	"vice.toolkit.interpolation._interp_scheme_1d": [
+		"./vice/src/objects/interp_scheme_1d.c",
+		"./vice/src/toolkit/interp_scheme_1d.c",
+		"./vice/src/utils.c"
+	],
+	"vice.toolkit.interpolation._interp_scheme_2d": [
+		"./vice/src/objects/interp_scheme_2d.c",
+		"./vice/src/toolkit/interp_scheme_2d.c",
+		"./vice/src/utils.c"
+	],
+	"vice.yields.agb._grid_reader": [
+		"./vice/src/objects/agb.c",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/callback_2arg.c",
+		"./vice/src/objects/ccsne.c",
+		"./vice/src/objects/channel.c",
+		"./vice/src/objects/element.c",
+		"./vice/src/objects/interp_scheme_2d.c",
+		"./vice/src/objects/sneia.c",
+		"./vice/src/io/agb.c",
+		"./vice/src/io/utils.c"
+	],
+	"vice.yields.ccsne._yield_integrator": [
+		"./vice/src/yields",
+		"./vice/src/objects/callback_1arg.c",
+		"./vice/src/objects/integral.c",
+		"./vice/src/objects/imf.c",
+		"./vice/src/io/ccsne.c",
+		"./vice/src/io/utils.c",
+		"./vice/src"
+	],
+	"vice.yields.sneia._yield_lookup": [
+		"./vice/src/io/sneia.c",
+		"./vice/src/io/utils.c"
+	],
+	"vice.yields.tests._integral": [
+		"./vice/src/yields/tests/integral.c",
+		"./vice/src/yields/integral.c",
+		"./vice/src/objects/integral.c",
+		"./vice/src/utils.c"
+	]
+
+}
+
+
+
+setup_package()
 

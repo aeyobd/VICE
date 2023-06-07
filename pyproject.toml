@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0.0", "cython >=0.29.0", "setuptools-scm"]
+requires = ["setuptools >= 61.0.0", "cython >=0.29.0"]
 build-backend = "setuptools.build_meta"
 
 
@@ -49,9 +49,3 @@ Repository = "https://github.com/giganano/VICE.git"
 Documentation = "https://vice-astro.readthedocs.io/"
 "Bug Tracker" = "https://github.com/giganano/VICE/issues"
 
-
-[tool.setuptools]
-package-dir = {"" = "src"}
-
-[tool.setuptools.packages.find]
-where = ["src"]

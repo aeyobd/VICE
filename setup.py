@@ -9,29 +9,55 @@ Windows Subsystem for Linux.""")
 
 from setuptools import setup, Extension, Command
 from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools.command.install import install
+from setuptools import find_packages as _find_packages
+
+from Cython.Build import cythonize
 
 
 bugs_url = "https://github.com/giganano/VICE/issues"
 
 
 
-class build_ext(_build_ext):
+def openmp_enabled():
+	# if ("VICE_ENABLE_OPENMP" in os.environ.keys() 
+	# and os.environ["VICE_ENABLE_OPENMP"] == "true"):
+	return True
 
+
+class build_ext(_build_ext):
 	r"""
 	Extends the ``build_ext`` base class provided by ``setuptools`` to
 	determine compiler flags on a case-by-case basis and filter the extensions
 	to be (re-)compiled.
-
-	Run 'python setup.py openmp --help' and 'python setup.py extensions --help'
-	for more info.
 	"""
+
+	def build_extensions(self):
+		self.filter_extensions()
+
+		compile_args, link_args = self.get_flags()
+
+		for ext in self.extensions:
+			for flag in compile_args: ext.extra_compile_args.append(flag)
+			for flag in link_args: ext.extra_link_args.append(flag)
+
+		_build_ext.build_extensions(self)
+
+	
+
+	def filter_extensions(self):
+		if "VICE_SETUP_EXTENSIONS" in os.environ.keys():
+			specified = os.environ["VICE_SETUP_EXTENSIONS"].split(',')
+			self.extensions = list(filter(lambda x: x.name in specified,
+				self.extensions))
+		else: pass
+
 
 	def get_flags(self):
 		compile_args = ["-fPIC", "-Wsign-conversion", "-Wsign-compare"]
 		link_args = []
 
-		if ("VICE_ENABLE_OPENMP" in os.environ.keys() 
-				and os.environ["VICE_ENABLE_OPENMP"] == "true"):
+		if openmp_enabled():
 			c_args, l_args = self.get_openmp_flags()
 			compile_args += c_args
 			link_args += l_args
@@ -43,16 +69,17 @@ class build_ext(_build_ext):
 
 
 	def get_openmp_flags(self):
+		if not openmp_enabled():
+			return [], []
+
 		compile_args = []
 		link_args = []
-
-		if os.environ["VICE_ENABLE_OPENMP"] != "true":
-			return [], []
 
 		if sys.platform == "darwin":
 			self.add_openmp_mac()
 
 		compiler = get_compiler()
+
 		if compiler == "gcc":
 			compile_args.append("-fopenmp")
 			link_args.append("-fopenmp")
@@ -77,26 +104,6 @@ class build_ext(_build_ext):
 		for ext in self.extensions:
 			ext.library_dirs.append(os.environ["LIBOMP_LIBRARY_DIR"])
 			ext.include_dirs.append(os.environ["LIBOMP_INCLUDE_DIR"])
-
-
-	def build_extensions(self):
-		compile_args, link_args = self.get_flags()
-
-		if "VICE_SETUP_EXTENSIONS" in os.environ.keys():
-			specified = os.environ["VICE_SETUP_EXTENSIONS"].split(',')
-			self.extensions = list(filter(lambda x: x.name in specified,
-				self.extensions))
-		else: pass
-
-		for ext in self.extensions:
-			for flag in compile_args: ext.extra_compile_args.append(flag)
-			for flag in link_args: ext.extra_link_args.append(flag)
-
-		_build_ext.build_extensions(self)
-
-
-
-
 
 
 def find_openmp_darwin():
@@ -168,7 +175,7 @@ linking VICE with OpenMP, then please open an issue at %s.""" % (bugs_url))
 
 
 
-def find_extensions(path = './src/'):
+def find_extensions(path = './src/vice'):
 	r"""
 	Finds all of VICE's extensions. If the user is either running
 	``setup.py extensions`` or has (equivalently) assigned the environment
@@ -177,7 +184,7 @@ def find_extensions(path = './src/'):
 
 	Parameters
 	----------
-	path : str [default : './vice']
+	path : str [default : './src/vice']
 		The path to the package directory
 
 	Returns
@@ -190,69 +197,17 @@ def find_extensions(path = './src/'):
 		for i in files:
 			if i.endswith(".pyx"):
 				# The name of the extension
-				name = "%s.%s" % (root[2+4:].replace('/', '.'),
+				name = "%s.%s" % (root[6:].replace('/', '.'),
 					i.split('.')[0])
 				# The source files in the C library
 				src_files = ["%s/%s" % (root[2:], i)]
 				src_files += find_c_extensions(name)
 				extensions.append(Extension(name, src_files))
+				print("extension ", name)
+				print("sources ", src_files)
 			else: continue
+
 	return extensions
-
-
-def find_packages(path = './src/vice'):
-	r"""
-	Finds each subpackage given the presence of an __init__.py file
-
-	Parameters
-	----------
-	path : str [default : './vice']
-		The path to the package directory
-	
-	Returns
-	-------
-	pkgs : list
-		The names of all sub-packages, determined from the names of
-		directories containing an __init__.py file.
-	"""
-	packages = []
-	for root, dirs, files in os.walk(path):
-		if "__init__.py" in files:
-			packages.append(root[2:].replace('/', '.'))
-		else:
-			continue
-	return packages
-
-
-def find_package_data():
-	r"""
-	Finds the data files to install based on a given extension
-
-	Extensions
-	----------
-	.dat : files holding built-in data
-	.obj : a pickled object -> currently the only instance is the pickled
-		dictionary containing version info of build dependencies
-
-	VICE's C extensions are compiled individually and wrapped into a
-	shared object using make. All of this output is moved to the install
-	directory to allow forward compatibility with future features that may
-	require it.
-	"""
-	packages = find_packages()
-	data = {}
-	data_extensions = [".dat"]
-	for i in packages:
-		data[i] = []
-		for j in os.listdir(i.replace('.', '/')):
-			# look at each files extension
-			for k in data_extensions:
-				if j.endswith(k):
-					data[i].append(j)
-				else:
-					continue
-	return data
-
 
 
 
@@ -261,11 +216,10 @@ def setup_package():
 	r"""
 	Build and install VICE.
 	"""
-	os.environ["VICE_ENABLE_OPENMP"] = "true"
 
 	# directories with .h header files, req'd by setup
 	include_dirs = []
-	for root, dirs, files in os.walk(".src/vice/src"):
+	for root, dirs, files in os.walk("./src/vice"):
 		if "__pycache__" not in root: include_dirs.append(root)
 
 	metadata = dict(
@@ -274,15 +228,11 @@ def setup_package():
 		cmdclass = {
 			"build_ext": build_ext,
 		},
-		packages = find_packages(),
-		package_data = find_package_data(),
+		packages = _find_packages(where="src"),
+		package_dir = {"": "src"},
+        package_data = {"": ["*.dat"]},
 		ext_modules = find_extensions(),
 		include_dirs = include_dirs,
-		setup_requires = [
-			"setuptools>=18.0", # automatically handles Cython extensions
-			"Cython>=0.29.0"
-		],
-		python_requires=">=3.7, <4",
 		zip_safe = False,
 		verbose = "-q" not in sys.argv and "--quiet" not in sys.argv
 	)
@@ -298,36 +248,37 @@ def setup_package():
 
 
 def find_c_extensions(name):
-    r"""
-    Finds the paths to the C extensions required for the specified
-    extension based on the _CFILES_ mapping in
-    vice/_build_utils/c_extensions.py.
+	r"""
+	Finds the paths to the C extensions required for the specified
+	extension based on the _CFILES_ mapping in
+	vice/_build_utils/c_extensions.py.
 
-    Parameters
-    ----------
-    name : str
-        The name of the extension to compile.
+	Parameters
+	----------
+	name : str
+		The name of the extension to compile.
 
-    Returns
-    -------
-    exts : list
-        A list of the relative paths to all C extensions.
+	Returns
+	-------
+	exts : list
+		A list of the relative paths to all C extensions.
 
-    Notes
-    -----
-    If the extension does not have an entry in the _CFILES_ dictionary,
-    VICE will compile the extension with ALL C files in it's C library,
-    omitting those under a directory named "tests" if "tests" is not in the
-    name of the extension.
-    """
-    extensions = []
-    cname = "./" + name[:4] 
-    if cname in _CFILES_.keys():
-        extensions += find_known_c_ext(name)
-    else:
-        extensions += find_generic_c_ext(name)
-    
-    return extensions
+	Notes
+	-----
+	If the extension does not have an entry in the _CFILES_ dictionary,
+	VICE will compile the extension with ALL C files in it's C library,
+	omitting those under a directory named "tests" if "tests" is not in the
+	name of the extension.
+	"""
+	extensions = []
+	if name in _CFILES_.keys():
+		print("known: ", name)
+		extensions += find_known_c_ext(name)
+	else:
+		print("unknown: ", name)
+		extensions += find_generic_c_ext(name)
+
+	return extensions
 
 
 def find_known_c_ext(name):
@@ -349,7 +300,7 @@ listing for extension %s: %s""" % (name, item))
 
 def find_generic_c_ext(name):
     extensions = []
-    path = os.path.dirname(os.path.abspath(__file__))
+    path = "./src/vice/src"
     for root, dirs, files in os.walk(path):
         for i in files:
             if i.endswith(".c"):
@@ -1062,8 +1013,10 @@ _CFILES_ = {
 		"./vice/src/objects/callback_1arg.c",
 		"./vice/src/objects/integral.c",
 		"./vice/src/objects/imf.c",
+		"./vice/src/objects/ccsne.c",
 		"./vice/src/io/ccsne.c",
 		"./vice/src/io/utils.c",
+		"./vice/src/io/progressbar.c",
 		"./vice/src"
 	],
 	"vice.yields.sneia._yield_lookup": [
@@ -1081,5 +1034,6 @@ _CFILES_ = {
 
 
 
-setup_package()
+if __name__ == "__main__":
+    setup_package()
 

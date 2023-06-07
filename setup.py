@@ -15,6 +15,40 @@ from setuptools import find_packages as _find_packages
 from Cython.Build import cythonize
 
 
+MIN_PYTHON_VERSION = "3.7"
+
+# Version info
+# Note that only one of DEV, ALPHA, BETA, RC, and POST can be anything other
+# than None, in which case it must be an ``int``.
+# Changes to these numbers also require changes to ./docs/src/index.rst and
+# ./docs/src/cover.tex
+MAJOR			= 1
+MINOR			= 4
+MICRO			= 1
+DEV				= 0
+ALPHA			= None
+BETA			= None
+RC				= None
+POST			= None
+ISRELEASED		= True
+VERSION			= "%d.%d.%d" % (MAJOR, MINOR, MICRO)
+if DEV is not None:
+	assert isinstance(DEV, int), "Invalid version information"
+	VERSION += ".dev%d" % (DEV)
+elif ALPHA is not None:
+	assert isinstance(ALPHA, int), "Invalid version information"
+	VERSION += "a%d" % (ALPHA)
+elif BETA is not None:
+	assert isinstance(BETA, int), "Invalid version information"
+	VERSION += "b%d" % (BETA)
+elif RC is not None:
+	assert isinstance(RC, int), "Invalid version information"
+	VERSION += "rc%d" % (RC)
+elif POST is not None:
+	assert isinstance(POST, int), "Invalid version information"
+	VERSION += ".post%d" % (POST)
+else: pass
+
 bugs_url = "https://github.com/giganano/VICE/issues"
 
 
@@ -234,12 +268,14 @@ def setup_package():
 		ext_modules = find_extensions(),
 		include_dirs = include_dirs,
 		zip_safe = False,
-		verbose = "-q" not in sys.argv and "--quiet" not in sys.argv
+		verbose = "-q" not in sys.argv and "--quiet" not in sys.argv,
+		version = VERSION
 	)
 
 
 	# set_path_variable()
 	setup(**metadata)
+	write_version_info()
 
 	check_dill()
 
@@ -443,6 +479,49 @@ package to make use of these features. This can be done via 'pip install dill'.
 ===============================================================================\
 """)
 
+
+def write_version_info(filename = "./src/vice/version_breakdown.py"):
+	r"""
+	Writes the version info to disk within the source tree
+
+	Parameters
+	----------
+	filename : str [default : "./src/vice/version_breakdown.py"]
+		The file to write the version info to.
+
+	.. note:: vice/version.py depends on the file produced by this function.
+	"""
+	cnt = """\
+# This file is generated from vice setup.py %(version)s
+
+MAJOR = %(major)d
+MINOR = %(minor)d
+MICRO = %(micro)d
+DEV = %(dev)s
+ALPHA = %(alpha)s
+BETA = %(beta)s
+RC = %(rc)s
+POST = %(post)s
+ISRELEASED = %(isreleased)s
+MIN_PYTHON_VERSION = \"%(minversion)s\"
+"""
+	with open(filename, 'w') as f:
+		try:
+			f.write(cnt % {
+					"version":		VERSION,
+					"major":		MAJOR,
+					"minor":		MINOR,
+					"micro":		MICRO,
+					"dev":			str(DEV),
+					"alpha":		str(ALPHA),
+					"beta":			str(BETA),
+					"rc":			str(RC),
+					"post":			str(POST),
+					"isreleased":	str(ISRELEASED),
+					"minversion":	MIN_PYTHON_VERSION
+				})
+		finally:
+			f.close()
 # def set_path_variable(filename = "~/.bash_profile"):
 # 	r"""
 # 	Permanently adds ~/.local/bin/ to the user's $PATH for local
@@ -467,49 +546,6 @@ package to make use of these features. This can be done via 'pip install dill'.
 # 		pass
 
 
-# def write_version_info(filename = "./vice/version_breakdown.py"):
-# 	r"""
-# 	Writes the version info to disk within the source tree
-# 
-# 	Parameters
-# 	----------
-# 	filename : str [default : "./vice/version_breakdown.py"]
-# 		The file to write the version info to.
-# 
-# 	.. note:: vice/version.py depends on the file produced by this function.
-# 	"""
-# 	cnt = """\
-# # This file is generated from vice setup.py %(version)s
-# 
-# MAJOR = %(major)d
-# MINOR = %(minor)d
-# MICRO = %(micro)d
-# DEV = %(dev)s
-# ALPHA = %(alpha)s
-# BETA = %(beta)s
-# RC = %(rc)s
-# POST = %(post)s
-# ISRELEASED = %(isreleased)s
-# MIN_PYTHON_VERSION = \"%(minversion)s\"
-# """
-# 	with open(filename, 'w') as f:
-# 		try:
-# 			f.write(cnt % {
-# 					"version":		VERSION,
-# 					"major":		MAJOR,
-# 					"minor":		MINOR,
-# 					"micro":		MICRO,
-# 					"dev":			str(DEV),
-# 					"alpha":		str(ALPHA),
-# 					"beta":			str(BETA),
-# 					"rc":			str(RC),
-# 					"post":			str(POST),
-# 					"isreleased":	str(ISRELEASED),
-# 					"minversion":	MIN_PYTHON_VERSION
-# 				})
-# 		finally:
-# 			f.close()
-# 
 _CFILES_ = {
 	"vice.core._cutils": [
 		"./vice/src/objects/callback_1arg.c",

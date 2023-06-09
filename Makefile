@@ -3,7 +3,7 @@ all: src
 
 .PHONY: src
 src:
-	@ $(MAKE) -C src/vice/src/
+	@ $(MAKE) -C vice/src/
 
 .PHONY: docs
 docs:
@@ -31,7 +31,7 @@ tutorial:
 .PHONY: clean
 clean:
 	@ echo Cleaning VICE source tree
-	@ $(MAKE) -C src/vice/ clean
+	@ $(MAKE) -C vice/ clean
 
 .PHONY: distclean
 distclean:

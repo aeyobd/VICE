@@ -79,28 +79,6 @@ pypi_url = "https://pypi.org/project/vice/"
 docs_url = "https://vice-astro.readthedocs.io/"
 bugs_url = "https://github.com/giganano/VICE/issues"
 
-CLASSIFIERS = """\
-Development Status :: 5 - Production/Stable
-Intended Audience :: Science/Research
-License :: OSI Approved :: MIT License
-Natural Language :: English
-Operating System :: MacOS
-Operating System :: POSIX
-Operating System :: Unix
-Programming Language :: C
-Programming Language :: Cython
-Programming Language :: Python
-Programming Language :: Python :: 3
-Programming Language :: Python :: 3.7
-Programming Language :: Python :: 3.8
-Programming Language :: Python :: 3.9
-Programming Language :: Python :: 3.10
-Programming Language :: Python :: 3 :: Only
-Programming Language :: Python :: Implementation :: CPython
-Topic :: Scientific/Engineering
-Topic :: Scientific/Engineering :: Astronomy
-Topic :: Scientific/Engineering :: Physics
-"""
 
 # Version info
 # Note that only one of DEV, ALPHA, BETA, RC, and POST can be anything other
@@ -651,25 +629,9 @@ def setup_package():
 
 	# Keywords to the setup() call
 	metadata = dict(
-		name = package_name,
 		version = VERSION,
-		author = "James W. Johnson",
-		author_email = "giganano9@gmail.com",
-		maintainer = "James W. Johnson",
-		maintainer_email = "giganano9@gmail.com",
-		url = repo_url,
-		project_urls = {
-			"Bug Tracker": bugs_url,
-			"Documentation": docs_url,
-			"Source Code": repo_url
-		},
-		description = "Galactic Chemical Evolution Integrator",
 		long_description = vice._LONG_DESCRIPTION_,
-		classifiers = CLASSIFIERS.split('\n'),
-		license = "MIT",
 		platforms = ["Linux", "Mac OS X", "Unix"],
-		keywords = ["galaxies", "simulations", "abundances"],
-		provides = [package_name],
 		cmdclass = {
 			"build_ext": build_ext,
 			"extensions": extensions,
@@ -680,11 +642,6 @@ def setup_package():
 		scripts = ["bin/%s" % (i) for i in os.listdir("./bin/")],
 		ext_modules = find_extensions(),
 		include_dirs = include_dirs,
-		setup_requires = [
-			"setuptools>=18.0", # automatically handles Cython extensions
-			"Cython>=0.29.0"
-		],
-		python_requires=">=3.7, <4",
 		zip_safe = False,
 		verbose = "-q" not in sys.argv and "--quiet" not in sys.argv
 	)

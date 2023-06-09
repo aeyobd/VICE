@@ -5,7 +5,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vice"
-dynamic = ["version"]
+# dynamic = ["version"]
+version = "1.4.1.dev0"
 
 description = "Galactic Chemical Evolution Integrator"
 license = {text = "MIT"}

@@ -88,7 +88,7 @@ bugs_url = "https://github.com/giganano/VICE/issues"
 MAJOR			= 1
 MINOR			= 4
 MICRO			= 0
-DEV				= 1
+DEV				= 2
 ALPHA			= None
 BETA			= None
 RC				= None
@@ -112,6 +112,8 @@ elif POST is not None:
 	VERSION += ".post%d" % (POST)
 else: pass
 
+
+os.environ["VICE_ENABLE_OPENMP"] = "true"
 
 class build_ext(_build_ext):
 
@@ -630,7 +632,6 @@ def setup_package():
 	# Keywords to the setup() call
 	metadata = dict(
 		version = VERSION,
-		long_description = vice._LONG_DESCRIPTION_,
 		platforms = ["Linux", "Mac OS X", "Unix"],
 		cmdclass = {
 			"build_ext": build_ext,

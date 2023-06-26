@@ -38,6 +38,8 @@ class interpolator(interp_scheme_2d):
 			version 1.3.0.
 	prefactor : ``float`` [default = 1]
 		A factor which to uniformly scale yields by.
+	mass_factor : ``float`` [default = 1]
+		A factor which to uniformly scale masses by.
 	interp_kind : ``str`` [default = "linear"]
 		How to interpolate the yield table.
 		Recognized keywords:
@@ -159,14 +161,15 @@ class interpolator(interp_scheme_2d):
 	.. [6] Karakas et al. (2018), MNRAS, 477, 421
 	"""
 
-	def __init__(self, element, study = "cristallo11", 
-			  prefactor=1, interp_kind="linear"):
+	def __init__(self, element, study="cristallo11", 
+			  prefactor=1, mass_factor=1, interp_kind="linear"):
 		# let the grid reader function do the error handling
 		yields, masses, metallicities = yield_grid(element, study = study)
 		yields = [[a*prefactor for a in b] for b in yields]
 		self.prefactor = prefactor
 		self.study=study
 		self.interp_kind = interp_kind
+		self.mass_factor = mass_factor
 		if interp_kind == "linear":
 			super().__init__(list(masses), list(metallicities), list(yields))
 		elif interp_kind == "log":
@@ -179,9 +182,9 @@ class interpolator(interp_scheme_2d):
 
 	def __call__(self, M, Z):
 		if self.interp_kind == "linear":
-			return super().__call__(M, Z)
+			return super().__call__(self.mass_factor*M, Z)
 		elif self.interp_kind == "log":
-			return super().__call__(M, math.log10(Z))
+			return super().__call__(self.mass_factor*M, math.log10(Z))
 
 	@property
 	def masses(self):

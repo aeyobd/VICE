@@ -15,6 +15,11 @@
 #include "../io.h"
 #include "../debug.h"
 
+#include <term.h> // setupterm
+#include <fcntl.h> // open
+#include <ncurses.h>
+#include <errno.h> // errno
+
 /* ---------- Static function comment headers not duplicated here ---------- */
 static void progressbar_print(PROGRESSBAR *pb);
 static void progressbar_set_strings(PROGRESSBAR *pb);
@@ -480,15 +485,70 @@ static unsigned short window_width(PROGRESSBAR pb) {
 		} else {}
 	} else {}
 
+    char const *const term = getenv( "TERM" );
+    if ( term == NULL ) {
+        fprintf( stderr, "TERM environment variable not set\n" );
+        return 0;
+    }
+
+    char const *const cterm_path = ctermid( NULL );
+    if ( cterm_path == NULL || cterm_path[0] == '\0' ) {
+        fprintf( stderr, "ctermid() failed\n" );
+        return 0;
+    }
+
+    int tty_fd = open( cterm_path, O_RDWR );
+    if ( tty_fd == -1 ) {
+        fprintf( stderr,
+            "open(\"%s\") failed (%d): %s\n",
+            cterm_path, errno, strerror( errno )
+        );
+        return 0;
+    }
+
+    int cols = 0;
+    int setupterm_err;
+    if ( setupterm( (char*)term, tty_fd, &setupterm_err ) == ERR ) {
+        switch ( setupterm_err ) {
+            case -1:
+                fprintf( stderr,
+                    "setupterm() failed: terminfo database not found\n"
+                );
+                goto done;
+            case 0:
+                fprintf( stderr,
+                "setupterm() failed: TERM=%s not found in database\n",
+                term
+                );
+                goto done;
+            case 1:
+                fprintf( stderr,
+                "setupterm() failed: terminal is hardcopy\n"
+                );
+            goto done;
+    } // switch
+  }
+
+    cols = tigetnum( (char*)"cols" );
+    if ( cols < 0 )
+        fprintf( stderr, "tigetnum() failed (%d)\n", cols );
+
+    done:
+        if ( tty_fd != -1 )
+            close( tty_fd );
+        return cols < 0 ? 0 : cols;
 	/*
 	 * Subtract 1 from the window width to make room for the cursor on the
 	 * far right side of the progressbar.
 	 */
-	struct winsize w;
-	ioctl(0, TIOCGWINSZ, &w);
-	debug_print("Window width = %u\n", w.ws_col - 1u);
-	return w.ws_col - 1u;
+	// struct winsize w;
+	// ioctl(0, TIOCGWINSZ, &w);
+    if (cols < 0)
+        return 0;
 
+	debug_print("Window width = %u\n", cols - 1u);
+    printf("window width = %u\n", cols - 1u);
+	return cols - 1u;
 }
 
 

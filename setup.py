@@ -132,7 +132,7 @@ class build_ext(_build_ext):
 		# included and others of which are only included when linking to
 		# openMP to enable multithreading.
 		compile_args = ["-fPIC", "-Wsign-conversion", "-Wsign-compare"]
-		link_args = []
+		link_args = ["-ltinfo"]
 		if "VICE_ENABLE_OPENMP" in os.environ.keys():
 			if os.environ["VICE_ENABLE_OPENMP"] == "true":
 				if sys.platform == "darwin":

@@ -1672,7 +1672,7 @@ especially for fine timestepping.""", VisibleRuntimeWarning)
 					self._sz[0].elements[i][0].agb_grid[0].custom_yield,
 					self._callback_agb[i]
 				)
-#				warnings.warn("""Functions of stellar mass and metallicity \
+				warnings.warn("""Functions of stellar mass and metallicity \
 #for asymptotic giant branch star yields may significantly increase the \
 #required integration time, especially for fine \
 #timestepping.""", VisibleRuntimeWarning)

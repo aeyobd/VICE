@@ -162,10 +162,15 @@ class interpolator(interp_scheme_2d):
 	"""
 
 	def __init__(self, element, study="cristallo11", 
-			  prefactor=1, mass_factor=1, interp_kind="linear"):
+			  prefactor=1, mass_factor=1, interp_kind="linear",
+              no_negative=False):
 		# let the grid reader function do the error handling
 		yields, masses, metallicities = yield_grid(element, study = study)
 		yields = [[a*prefactor for a in b] for b in yields]
+		self._nonegative = no_negative
+
+		if no_negative:
+			yields = [[max(0, a) for a in b] for b in yields]
 		self.prefactor = prefactor
 		self.study=study
 		self.interp_kind = interp_kind
@@ -181,10 +186,15 @@ class interpolator(interp_scheme_2d):
 			raise ValueError("unexpected interp_kind: %s" % interp_kind)
 
 	def __call__(self, M, Z):
+		y = 0
 		if self.interp_kind == "linear":
-			return super().__call__(self.mass_factor*M, Z)
+			y =  super().__call__(self.mass_factor*M, Z)
 		elif self.interp_kind == "log":
-			return super().__call__(self.mass_factor*M, math.log10(Z))
+			y =  super().__call__(self.mass_factor*M, math.log10(Z))
+		if self._nonegative:
+			return max(y, 0)
+		else:
+			return y
 
 	@property
 	def masses(self):

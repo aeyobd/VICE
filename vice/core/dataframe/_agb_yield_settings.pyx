@@ -51,6 +51,8 @@ cdef class agb_yield_settings(yield_settings):
 				- "ventura13" : Ventura et al. (2013) [3]_
 				- "karakas16": Karakas & Lugaro (2016) [4]_; Karakas et al.
 				  (2018) [5]_
+                - "pignatari16": TBA
+                
 
 
 		- <function> : Mathematical function describing the yield.

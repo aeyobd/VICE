@@ -25,7 +25,7 @@ from ._grid_reader cimport ELEMENT
 from . cimport _grid_reader
 
 _RECOGNIZED_STUDIES_ = tuple(["cristallo11", "karakas10", "ventura13",
-	"karakas16"])
+	"karakas16", "pignatari16"])
 _VENTURA13_ELEMENTS_ = tuple(["he", "c", "n", "o", "ne", "na", "mg", "al", "si"])
 
 
@@ -50,6 +50,7 @@ def yield_grid(element, study = "cristallo11"):
 			- "karakas10" : Karakas (2010) [3]_
 			- "ventura13" : Ventura et al. (2013) [4]_
 			- "karakas16": Karakas & Lugaro (2016) [5]_; Karkas et al. (2018)
+            - "pignatari16": Pignatari et al. (2016); Ritter et al. (2018). 
 				[6]_
 
 		.. versionadded:: 1.3.0
@@ -157,8 +158,11 @@ element %s. Only the following elements have tables available: %s.""" % (
 		pass
 
 	cdef ELEMENT *e = _grid_reader.element_initialize()
-	if _grid_reader.import_agb_grid(e, filename.encode("latin-1")):
+
+	err_code = _grid_reader.import_agb_grid(e, filename.encode("latin-1"))
+	if err_code:
 		_grid_reader.element_free(e)
+		print("error: ", err_code)
 		raise SystemError("Internal Error: couldn't read yield file.")
 	else:
 		try:

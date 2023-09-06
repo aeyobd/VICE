@@ -29,6 +29,8 @@ ventura13 : yield preset
 karakas16 : yield preset
 	Sets the yields according to the Karakas & Lugaro (2016), Karakas et al.
 	(2018) studies.
+pignatari16: yield preset
+    TBA
 
 .. versionadded:: 1.3.0
 	The "ventura13" and "karakas16" yield models were introduced in version

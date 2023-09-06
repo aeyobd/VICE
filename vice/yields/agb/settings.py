@@ -48,6 +48,7 @@ class settings(agb_yield_settings):
 			- "karakas10" : Karakas (2010) [3]_
 			- "ventura13" : Ventura et al. (2013) [4]_
 			- "karakas16" : Karakas & Lugaro (2016) [5]_ ; Karakas et al. (2018)
+            - "pignatari16": TBA
 				[6]_
 
 			.. versionadded:: 1.3.0

@@ -26,12 +26,13 @@ except NameError:
 
 if not __VICE_SETUP__:
 
-	__all__ = ["hydrodisk", "interpolation", "J21_sf_law", "test", "rand_walk"]
+	__all__ = ["hydrodisk", "interpolation", "J21_sf_law", "test", "rand_walk", "gaussian"]
 	from ..testing import moduletest
 	from .J21_sf_law import J21_sf_law
 	from . import interpolation
 	from . import hydrodisk
 	from . import rand_walk
+	from . import gaussian
 
 	@moduletest
 	def test():

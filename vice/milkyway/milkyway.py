@@ -7,6 +7,7 @@ from ..core.dataframe._builtin_dataframes import solar_z
 from ..core import _pyutils
 from ..toolkit.hydrodisk import hydrodiskstars
 from ..toolkit.rand_walk import rand_walk_stars
+from ..toolkit.gaussian import gaussian_stars
 from ..toolkit.J21_sf_law import J21_sf_law
 from .. import yields
 from .utils import mass_from_surface_density
@@ -217,6 +218,9 @@ class milkyway(multizone):
 
 		if migration_mode == "rand_walk":
 			self.migration.stars = rand_walk_stars(radial_bins, 
+				 n_stars=n_stars, dt=dt, name=self.name)
+		elif migration_mode == "gaussian":
+			self.migration.stars = gaussian_stars(radial_bins, 
 				 n_stars=n_stars, dt=dt, name=self.name)
 
 		else:

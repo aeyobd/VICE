@@ -8,13 +8,13 @@ from ...core cimport _cutils
 
 from libc.stdlib cimport malloc, free
 
-from . cimport _rand_walk_stars
+from . cimport _gaussian_stars
 
 
 
-cdef class c_rand_walk_stars:
+cdef class c_gaussian_stars:
 	"""
-	The C-implementation of the rand_walk_stars object. See python version for
+	The C-implementation of the gaussian_stars object. See python version for
 	documentation.
 	"""
 	cdef double * _radial_bins
@@ -26,6 +26,7 @@ cdef class c_rand_walk_stars:
 	cdef double * radii
 	cdef double sigma_R
 	cdef double tau_R
+	cdef double t_end
 	cdef bint _write
 	cdef char* filename
 
@@ -35,6 +36,7 @@ cdef class c_rand_walk_stars:
 				  double sigma_R=1.27):
 		self.radial_bins = radbins
 		self.n_t = round(t_end/dt)
+		self.t_end = t_end
 		self.n_stars = n_stars
 		self.dt = dt
 
@@ -84,28 +86,25 @@ cdef class c_rand_walk_stars:
 		N = self.get_idx(zone_idx, tform, n=n)
 
 		if tform == time:
-			self.radii[N] = birth_radius
+			R_final = birth_radius + self.delta_R(self.t_end - tform)
+			if R_final < 0:
+				R_final = 0
+			if R_final > 20:
+				R_final = 20
+			self.radii[N] = R_final
 			bin_id =  zone
 		else:
-			dR_new = self.dR()
-			R_new = dR_new + self.radii[N]
+			final_radius = self.radii[N]
+			R_new = birth_radius + (final_radius - birth_radius) * (time - tform)**0.5 / (self.t_end - tform)**0.5
 			
-			if R_new > 20:
-				self.radii[N] = 20
-			elif R_new < 0:
-				# this helps avoid particles being stuck at 1
-				self.radii[N] = abs(self.radii[N]) + abs(dR_new)
-			else:
-				self.radii[N] = R_new
 			
-			bin_id = self.bin_of(self.radii[N])
+			bin_id = self.bin_of(R_new)
 
 		if (0 > bin_id) or (self.n_bins < bin_id):
 			raise RuntimeError("calculated a nonsense bin, %i" % bin_id )
 
 		if self.write:
-			r = self.radii[N]
-			self.write_migration(f"{N},{time},{r},{bin_id}\n")
+			self.write_migration(f"{N},{time},{R_new},{bin_id}\n")
 			
 		return bin_id
 
@@ -153,9 +152,9 @@ cdef class c_rand_walk_stars:
 		return self.n_bins
 
 
-	def dR(self):
+	def delta_R(self, delta_t):
 		cdef double r
-		r = randn() * self.dt**0.5 * self.sigma_R
+		r = randn() * delta_t**0.5 * self.sigma_R
 		return r
 
 

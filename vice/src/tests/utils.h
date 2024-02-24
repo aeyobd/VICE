@@ -62,6 +62,18 @@ extern unsigned short test_simple_hash(void);
 extern unsigned short test_rand_range(void);
 
 /*
+ * tests the random normal generator at vice/src/utils.h
+ *
+ * Returns
+ * =======
+ *
+ * 1 on success, 0 on failure
+ *
+ * source: utils.c
+ */
+extern unsigned short test_randn(void);
+
+/*
  * Test the 1-D interpolation function vice/src/utils.h
  *
  * Returns

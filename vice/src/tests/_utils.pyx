@@ -8,6 +8,7 @@ __all__ = [
 	"test_sign_function",
 	"test_hash_codes",
 	"test_pseudorandom_generator",
+	"test_randn_generator",
 	"test_1D_interpolation",
 	"test_2D_interpolation",
 	"test_sqrtx_interpolation",
@@ -35,6 +36,7 @@ def test():
 			test_sign_function(),
 			test_hash_codes(),
 			test_pseudorandom_generator(),
+			test_randn_generator(),
 			test_1D_interpolation(),
 			test_2D_interpolation(),
 			test_sqrtx_interpolation(),
@@ -86,6 +88,14 @@ def test_pseudorandom_generator():
 	Tests the pseudorandom number generator at vice/src/utils.h
 	"""
 	return ["vice.src.utils.rand_range", _utils.test_rand_range]
+
+
+@unittest
+def test_randn_generator():
+	"""
+	Tests the pseudorandom number generator at vice/src/utils.h
+	"""
+	return ["vice.src.utils.randn", _utils.test_randn]
 
 
 @unittest

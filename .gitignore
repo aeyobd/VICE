@@ -125,6 +125,7 @@ vice/src/tests/_imf.c
 vice/src/tests/_stats.c
 vice/src/tests/_utils.c
 vice/toolkit/hydrodisk/_hydrodiskstars.c
+vice/toolkit/gaussian/_gaussian_stars.c
 vice/toolkit/interpolation/_interp_scheme_1d.c
 vice/toolkit/interpolation/_interp_scheme_2d.c
 vice/version_breakdown.py

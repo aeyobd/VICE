@@ -8,6 +8,7 @@ This package provides tables from the following nucleosynthetic yield studies:
 	- Karakas (2010) [2]_
 	- Ventura et al. (2013, 2014, 2018, 2020) [3]_ [4]_ [5]_ [6]_
 	- Karakas & Lugaro (2016) [7]_, Karakas et al. (2018) [8]_
+    - Pignatari et al. (2016) [9]_, Ritter et al. (2018) [10]_, Battino et al. (2019, 2021) [11]_ [12]_
 
 Contents
 --------
@@ -29,6 +30,8 @@ ventura13 : yield preset
 karakas16 : yield preset
 	Sets the yields according to the Karakas & Lugaro (2016), Karakas et al.
 	(2018) studies.
+pignatari16 : yield preset
+    Sets the yields according to the Pignatari et al. (2016), Ritter et al. (2018), and Battino et al. (2019, 2021) studies.
 
 .. versionadded:: 1.3.0
 	The "ventura13" and "karakas16" yield models were introduced in version
@@ -49,6 +52,10 @@ any way.
 .. [6] Ventura et al. (2020), A&A, 641, A103
 .. [7] Karakas & Lugaro (2016), ApJ, 825, 26
 .. [8] Karakas et al. (2018), MNRAS, 477, 421
+.. [9] Pignatari et al. (2016), ApJ, 225, 24
+.. [10] Ritter et al. (2018), MNRAS, 480, 538
+.. [11] Battino et al. (2019), MNRAS, 489, 1082
+.. [12] Battino et al. (2021), Universe, 7, 25
 """
 
 from __future__ import absolute_import

@@ -51,6 +51,7 @@ cdef class agb_yield_settings(yield_settings):
 				- "ventura13" : Ventura et al. (2013) [3]_
 				- "karakas16": Karakas & Lugaro (2016) [4]_; Karakas et al.
 				  (2018) [5]_
+                - "pignatari16": Pignatari et al. (2016) [9]_, Ritter et al. (2018) [10]_, Battino et al. (2019, 2021) [11]_ [12]_
 
 
 		- <function> : Mathematical function describing the yield.
@@ -114,6 +115,10 @@ cdef class agb_yield_settings(yield_settings):
 	.. [3] Ventura et al. (2013), MNRAS, 431, 3642
 	.. [4] Karakas & Lugaro (2016), ApJ, 825, 26
 	.. [5] Karakas et al. (2018), MNRAS, 477, 421
+	.. [9] Pignatari et al. (2016), ApJ, 225, 24
+	.. [10] Ritter et al. (2018), MNRAS, 480, 538
+	.. [11] Battino et al. (2019), MNRAS, 489, 1082
+	.. [12] Battino et al. (2021), Universe, 7, 25
 	"""
 
 	def __init__(self, frame, name, allow_funcs, config_field):

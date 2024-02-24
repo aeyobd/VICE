@@ -528,6 +528,7 @@ proceed faster or slower as a function of the timestep size."""
 			self.migration.stars(0, 0, 0, n = 0)
 		except TypeError:
 			takes_keyword = False
+            warnings.warn("Migration does not take kwarg ``n``. Ignoring for now")
 		_tracer.malloc_tracers(self._mz)
 		if hasattr(self.migration.stars, "write"):
 			# Allow users to write extra data when the function is called.
@@ -700,7 +701,7 @@ Zone number must always be an integer. Got: %s""" % (type(final)))
 				zone_history[timestep:(n_timesteps - _singlezone.BUFFER + 1)] = [
 					self.migration.stars(zone,
 						timestep * self._mz[0].zones[0][0].dt,
-						l * self._mz[0].zones[0][0].dt) for l in
+						l * self._mz[0].zones[0][0].dt, **kwargs) for l in
 					range(timestep, n_timesteps - _singlezone.BUFFER + 1)
 				]
 

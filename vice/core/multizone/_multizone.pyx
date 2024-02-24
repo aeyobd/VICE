@@ -528,7 +528,7 @@ proceed faster or slower as a function of the timestep size."""
 			self.migration.stars(0, 0, 0, n = 0)
 		except TypeError:
 			takes_keyword = False
-            warnings.warn("Migration does not take kwarg ``n``. Ignoring for now")
+			warnings.warn("Migration does not take kwarg ``n``. Ignoring for now")
 		_tracer.malloc_tracers(self._mz)
 		if hasattr(self.migration.stars, "write"):
 			# Allow users to write extra data when the function is called.

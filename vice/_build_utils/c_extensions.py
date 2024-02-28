@@ -488,6 +488,14 @@ _CFILES_ = {
 	"vice.toolkit.gaussian._gaussian_stars": [
 		"./vice/src/utils.c"
 	],
+	"vice.toolkit.rand_walk._rand_walk_stars": [
+		"./vice/src/utils.c"
+	],
+	"vice.toolkit.interpolation._interp_scheme_1d": [
+		"./vice/src/objects/interp_scheme_1d.c",
+		"./vice/src/toolkit/interp_scheme_1d.c",
+		"./vice/src/utils.c"
+	],
 	"vice.toolkit.interpolation._interp_scheme_2d": [
 		"./vice/src/objects/interp_scheme_2d.c",
 		"./vice/src/toolkit/interp_scheme_2d.c",

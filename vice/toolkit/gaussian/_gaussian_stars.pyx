@@ -7,6 +7,8 @@ from ...core cimport _cutils
 
 
 from libc.stdlib cimport malloc, free
+from libc.math cimport NAN, sqrt, pow
+cimport cython
 
 from . cimport _gaussian_stars
 
@@ -23,7 +25,8 @@ cdef class c_gaussian_stars:
 	cdef int n_stars
 	cdef size_t N_idx
 	cdef double dt
-	cdef double * radii
+	cdef double * _r_birth
+	cdef double * _r_final
 	cdef double sigma_R
 	cdef double tau_R
 	cdef double t_end
@@ -34,75 +37,90 @@ cdef class c_gaussian_stars:
 	def __cinit__(self, radbins, int n_stars=2, 
 				  double dt=0.01, double t_end=13.5, filename=None, 
 				  double sigma_R=1.27):
-		self.radial_bins = radbins
-		self.n_t = round(t_end/dt)
+		self.dt = dt
 		self.t_end = t_end
 		self.n_stars = n_stars
-		self.dt = dt
+		self.radial_bins = radbins
+		self.sigma_R = sigma_R
+		self.set_filename(filename)
 
+		self._write = False
+		self.n_t = round(t_end/dt)
+		self.alloc_arrays()
+		self.init_radii()
+
+	def set_N_max(self):
 		cdef int i_test = self.n_t * self.n_stars * self.n_bins
 		if i_test < 0:
 			raise ValueError("negative max index, ", i_test)
 		self.N_idx = <size_t> i_test
 
+
+	def alloc_arrays(self):
+		self.set_N_max()
 		cdef double * arr = <double *> malloc(self.N_idx * sizeof(double))
 		if not arr:
 			raise MemoryError()
+		cdef double * arr2 = <double *> malloc(self.N_idx * sizeof(double))
+		if not arr2:
+			raise MemoryError()
 
-		self.radii = arr
+		self._r_birth = arr
+		self._r_final = arr2
 
-		self.sigma_R = sigma_R
-		self._write = False
+
+	def set_filename(self, filename):
 		cdef size_t f_len
 		if filename is not None:
 			f_len = <size_t> (2*len(filename))
 			self.filename = <char *> malloc(f_len * sizeof(char))
 			_cutils.set_string(self.filename, filename)
 			self.write = True
+		else:
+			self.filename = ''
 
+
+	def init_radii(self):
+		cdef double r
+		for n in range(self.n_stars):
+			for zone in range(self.n_bins):
+				for i in range(self.n_t):
+					tform = self.dt * i
+					N = self.get_idx(zone, tform, n=n)
+					self._r_birth[N] = rand_range(self._radial_bins[zone], self._radial_bins[zone+1])
+					r = self._r_birth[N] + self.delta_R(self.t_end - tform)
+					if r > self._radial_bins[-1]:
+						r = self._radial_bins[-1]
+					if r < 0:
+						r = abs(r)
+					self._r_final[N] = r
 
 	def __dealloc__(self):
-		free(self.radii)
+		free(self._r_birth)
+		free(self._r_final)
 		free(self._radial_bins)
 
-
-	def __call__(self, int zone, double tform, double time, *, int n=0):
+	def call(self, int zone, double tform, double time, int n=0):
 		cdef int bin_id
-		cdef double r
-
-
-		if not (0 <= zone < self.n_bins):
-			raise ValueError("Zone out of range: %d" % (zone))
-		cdef Py_ssize_t zone_idx = zone
-
-		if tform > time:
-			raise ValueError("Time out of range: %f < tform = %f" 
-					% (time, tform))
-
-		birth_radius = (self.radial_bins[zone_idx]
-						 + self.radial_bins[zone_idx + 1]) / 2
-
 		cdef size_t N
-		N = self.get_idx(zone_idx, tform, n=n)
+		cdef double td
+		cdef int idx
 
-		if tform == time:
-			R_final = birth_radius + self.delta_R(self.t_end - tform)
-			if R_final < 0:
-				R_final = 0
-			if R_final > 20:
-				R_final = 20
-			self.radii[N] = R_final
-			R_new = birth_radius
-			bin_id =  zone
-		else:
-			final_radius = self.radii[N]
-			R_new = birth_radius + (final_radius - birth_radius) * (time - tform)**0.5 / (self.t_end - tform)**0.5
-			
-			
-			bin_id = self.bin_of(R_new)
+		if zone < 0 or zone >= self.n_bins or n < 0 or n >= self.n_stars:
+			return -1
 
-		if (0 > bin_id) or (self.n_bins < bin_id):
-			raise RuntimeError("calculated a nonsense bin, %i" % bin_id )
+		idx = self.get_idx(zone, tform, n=n)
+		if idx < 0:
+			return - 1
+
+		N = <size_t>idx
+
+		final_radius = self._r_final[N]
+		birth_radius = self._r_birth[N]
+		td = (time - tform) / (self.t_end - tform)
+		R_new = birth_radius + (final_radius - birth_radius) * sqrt(td)
+		
+		bin_id = bin_of(self._radial_bins, self.n_bins, R_new)
 
 		if self.write:
 			self.write_migration(f"{N},{time},{R_new},{bin_id}\n")
@@ -111,46 +129,42 @@ cdef class c_gaussian_stars:
 
 
 	def write_migration(self, s):
-		if self.filename is None:
+		if self.filename.decode() == '':
 			return
 
 		with open(self.filename, "a") as f:
 			f.write(s)
 
 
-	def get_idx(self, int zone, double tform, *, int n=0):
+	def get_idx(self, int zone, double tform, int n=0):
 		cdef int t_int
 		cdef size_t N	
 		cdef int N_int
 
 		t_int = round(tform / self.dt) 
 		if t_int > self.n_t:
-			raise ValueError("time out of range %f" % tform)
+			print("time out of range %f" % tform)
+			return -1
 		if n > self.n_stars:
-			raise ValueError("n out of range %i" % n)
+			print("n out of range %i" % n)
+			return -1
 
 
 		N_int = (t_int * self.n_bins * self.n_stars 
 			+ zone * self.n_stars
 			+ n)
 		if N_int < 0:
-			raise ValueError(f"Index must be positive, instead got {N_int}")
+			print(f"Index must be positive, instead got {N_int}")
+			return -1
 		N = <size_t> N_int
 
 		if N > self.N_idx:
-			raise ValueError(f"got out of range index {N}, values zone={zone}, tform={tform}, n={n}")
+			print(f"got out of range index {N}, values zone={zone}, tform={tform}, n={n}")
+			return -1
 
 		return N
 
 
-	def bin_of(self, double R):
-		if R < 0:
-			return -1
-
-		for i in range(self.n_bins):
-			if self.radial_bins[i] <= R  <= self.radial_bins[i+1]:
-				return int(i)
-		return self.n_bins
 
 
 	def delta_R(self, delta_t):
@@ -181,6 +195,13 @@ cdef class c_gaussian_stars:
 	def radial_bins(self):
 		return [self._radial_bins[i] for i in range(self.n_bins + 1)]
 
+	def get_r_birth(self, i):
+		if 0 <= i < self.N_idx:
+			return self._r_birth[i]
+
+	def get_r_final(self, i):
+		if 0 <= i < self.N_idx:
+			return self._r_final[i]
 
 	@radial_bins.setter
 	def radial_bins(self, value):
@@ -191,4 +212,22 @@ cdef class c_gaussian_stars:
 		self.n_bins = len(value) - 1
 		if self._radial_bins is not NULL: free(self._radial_bins)
 		self._radial_bins = _cutils.copy_pylist(value)
+
+
+@staticmethod
+cdef int bin_of(double * bins, size_t n_bins, double R) nogil:
+	cdef int left = 0
+	cdef int right = n_bins - 1
+	cdef int mid
+
+	while left <= right:
+		mid = (left + right) // 2
+		if bins[mid] <= R < bins[mid+1]:
+			return mid
+		elif R < bins[mid]:
+			right = mid - 1
+		else:
+			left = mid + 1
+
+	return -1
 

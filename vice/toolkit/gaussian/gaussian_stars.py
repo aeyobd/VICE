@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 from ._gaussian_stars import c_gaussian_stars
+from ..hydrodisk.hydrodiskstars import hydrodiskstars
 import numpy as np
 
 
@@ -7,7 +8,7 @@ class gaussian_stars:
 
 	r"""
 	A stellar migration scheme based on a gaussian total pertubation with
-    sqrt(t) time evolution
+	sqrt(t) time evolution
 
 	**Signature**: vice.toolkit.gaussian_stars.gaussian_stars(
 		radial_bins, 
@@ -65,11 +66,17 @@ class gaussian_stars:
 			rad_bins = np.array(rad_bins)
 		if name is not None:
 			filename = name + "_gaussian_walks.dat"
+		else:
+			filename = None
 		self.__c_version = c_gaussian_stars(rad_bins, filename=filename, **kwargs)
 
 
 	def __call__(self, zone, tform, time, n=0):
-		return self.__c_version.__call__(zone, tform, time, n=n)
+		val = self.__c_version.call(zone, tform, time, n=n)
+		if val < -1:
+			raise ValueError("could not calculate bin")
+
+		return val
 
 
 	def __enter__(self):
@@ -80,6 +87,12 @@ class gaussian_stars:
 	def __exit__(self, exc_type, exc_value, exc_tb):
 		# Raises all exceptions inside a with statement
 		return exc_value is None
+
+	def get_r_final(self, i):
+		return self.__c_version.get_r_final(i)
+
+	def get_r_birth(self, i):
+		return self.__c_version.get_r_birth(i)
 
 
 
@@ -98,14 +111,13 @@ class gaussian_stars:
 	def radial_bins(self, value):
 		self.__c_version.radial_bins = value
 
-
 	@property
 	def idx(self):
 		return self.__c_version.idx
 
 	@property
 	def mode(self):
-		return None
+		return "diffusion"
 
 	@property
 	def write(self):

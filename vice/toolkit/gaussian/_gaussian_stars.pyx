@@ -32,6 +32,8 @@ cdef class c_gaussian_stars:
 	cdef double t_end
 	cdef bint _write
 	cdef char* filename
+	cdef public double r_max
+	cdef public double r_min
 
 
 	def __cinit__(self, radbins, int n_stars=2, 
@@ -46,6 +48,9 @@ cdef class c_gaussian_stars:
 
 		self._write = False
 		self.n_t = round(t_end/dt)
+		self.n_bins = len(radbins)
+		self.r_min = radbins[0]
+		self.r_max = radbins[self.n_bins-1]
 		self.alloc_arrays()
 		self.init_radii()
 
@@ -80,20 +85,34 @@ cdef class c_gaussian_stars:
 			self.filename = ''
 
 
-	def init_radii(self):
-		cdef double r
+	cpdef void init_radii(self):
+		cdef double r_i
+
 		for n in range(self.n_stars):
 			for zone in range(self.n_bins):
 				for i in range(self.n_t):
 					tform = self.dt * i
 					N = self.get_idx(zone, tform, n=n)
-					self._r_birth[N] = rand_range(self._radial_bins[zone], self._radial_bins[zone+1])
-					r = self._r_birth[N] + self.delta_R(self.t_end - tform)
-					if r > self._radial_bins[-1]:
-						r = self._radial_bins[-1]
-					if r < 0:
-						r = abs(r)
-					self._r_final[N] = r
+					r_i = rand_range(self._radial_bins[zone], self._radial_bins[zone+1])
+					# random sample in birth zone for variance
+					self._r_birth[N] = r_i
+					self._r_final[N] = self.calc_r_final(r_i, tform)
+				# end
+			# endfor
+		# endfor
+
+	cpdef double calc_r_final(self, double r_birth, double tform):
+		cdef double r
+		r = r_birth + self.delta_R(self.t_end - tform)
+		
+		# boundary limits
+		if r > self.r_max:
+			r = self.r_max
+		if r < self.r_min:
+			r = self.r_min # could also wrap around, etc.
+
+		return r
+
 
 	def __dealloc__(self):
 		free(self._r_birth)
@@ -129,9 +148,6 @@ cdef class c_gaussian_stars:
 
 
 	def write_migration(self, s):
-		if self.filename.decode() == '':
-			return
-
 		with open(self.filename, "a") as f:
 			f.write(s)
 
@@ -149,6 +165,9 @@ cdef class c_gaussian_stars:
 			print("n out of range %i" % n)
 			return -1
 
+		if zone > self.n_bins:
+			print("zone out of range %i" % zone)
+			return -1
 
 		N_int = (t_int * self.n_bins * self.n_stars 
 			+ zone * self.n_stars
@@ -187,8 +206,14 @@ cdef class c_gaussian_stars:
 
 	@write.setter
 	def write(self, a):
-		self._write = a
-		if a:
+
+		if self.filename.decode() == '':
+			print("warning, filename not set, so will not write")
+			self._write = False
+		else:
+			self._write = a
+
+		if a and self.filename.decode() != '':
 			self.write_header()
 
 	@property
@@ -210,7 +235,8 @@ cdef class c_gaussian_stars:
 			"Non-numerical value detected.")
 		value = sorted(value)
 		self.n_bins = len(value) - 1
-		if self._radial_bins is not NULL: free(self._radial_bins)
+		if self._radial_bins is not NULL: 
+			free(self._radial_bins)
 		self._radial_bins = _cutils.copy_pylist(value)
 
 

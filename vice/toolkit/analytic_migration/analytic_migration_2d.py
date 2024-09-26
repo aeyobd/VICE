@@ -1,16 +1,15 @@
 from __future__ import absolute_import
-from ._gaussian_stars import c_gaussian_stars
+from ._analytic_migration_2d import c_analytic_migration_2d
 from ..hydrodisk.hydrodiskstars import hydrodiskstars
 import numpy as np
 
 
-class gaussian_stars:
+class analytic_migration_2d:
 
 	r"""
-	A stellar migration scheme based on a gaussian total pertubation with
-	sqrt(t) time evolution
+    A generalized, fast function migration for vice
 
-	**Signature**: vice.toolkit.gaussian_stars.gaussian_stars(
+	**Signature**: vice.toolkit.analytic_migration.analytic_migration_2d(
 		radial_bins, 
 		n_stars = 1,
 		dt = 0.01,
@@ -65,10 +64,10 @@ class gaussian_stars:
 		if isinstance(rad_bins, list):
 			rad_bins = np.array(rad_bins)
 		if name is not None:
-			filename = name + "_gaussian_walks.dat"
+			filename = name + "_migration.dat"
 		else:
 			filename = None
-		self.__c_version = c_gaussian_stars(rad_bins, filename=filename, **kwargs)
+		self.__c_version = c_analytic_migration_2d(rad_bins, filename=filename, **kwargs)
 
 
 	def __call__(self, zone, tform, time, n=0):
@@ -127,7 +126,9 @@ class gaussian_stars:
 	def write(self, a):
 		self.__c_version.write = a
 	
-
+	@property
+	def n_zones(self):
+		return self.__c_version.get_n_zones()
 
 
 

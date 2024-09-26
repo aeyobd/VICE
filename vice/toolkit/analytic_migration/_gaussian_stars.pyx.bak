@@ -20,7 +20,7 @@ cdef class c_gaussian_stars:
 	documentation.
 	"""
 	cdef double * _radial_bins
-	cdef int n_bins
+	cdef public int n_zones
 	cdef int n_t
 	cdef int n_stars
 	cdef size_t N_idx
@@ -48,14 +48,15 @@ cdef class c_gaussian_stars:
 
 		self._write = False
 		self.n_t = round(t_end/dt)
-		self.n_bins = len(radbins)
+		self.n_zones = len(radbins) - 1
 		self.r_min = radbins[0]
-		self.r_max = radbins[self.n_bins-1]
+		self.r_max = radbins[self.n_zones]
 		self.alloc_arrays()
 		self.init_radii()
 
+
 	def set_N_max(self):
-		cdef int i_test = self.n_t * self.n_stars * self.n_bins
+		cdef int i_test = self.n_t * self.n_stars * self.n_zones
 		if i_test < 0:
 			raise ValueError("negative max index, ", i_test)
 		self.N_idx = <size_t> i_test
@@ -89,11 +90,15 @@ cdef class c_gaussian_stars:
 		cdef double r_i
 
 		for n in range(self.n_stars):
-			for zone in range(self.n_bins):
+			for zone in range(self.n_zones):
 				for i in range(self.n_t):
 					tform = self.dt * i
 					N = self.get_idx(zone, tform, n=n)
 					r_i = rand_range(self._radial_bins[zone], self._radial_bins[zone+1])
+					if bin_of(self._radial_bins, self.n_zones+1, r_i) != zone:
+						print("error, r_i not in bin")
+						print(f"r_i={r_i}, zone={zone}")
+						
 					# random sample in birth zone for variance
 					self._r_birth[N] = r_i
 					self._r_final[N] = self.calc_r_final(r_i, tform)
@@ -125,10 +130,8 @@ cdef class c_gaussian_stars:
 		cdef double td
 		cdef int idx
 
-		if zone < 0 or zone >= self.n_bins or n < 0 or n >= self.n_stars:
-			return -1
-
 		idx = self.get_idx(zone, tform, n=n)
+
 		if idx < 0:
 			return - 1
 
@@ -139,7 +142,7 @@ cdef class c_gaussian_stars:
 		td = (time - tform) / (self.t_end - tform)
 		R_new = birth_radius + (final_radius - birth_radius) * sqrt(td)
 		
-		bin_id = bin_of(self._radial_bins, self.n_bins, R_new)
+		bin_id = bin_of(self._radial_bins, self.n_zones+1, R_new)
 
 		if self.write:
 			self.write_migration(f"{N},{time},{R_new},{bin_id}\n")
@@ -165,11 +168,11 @@ cdef class c_gaussian_stars:
 			print("n out of range %i" % n)
 			return -1
 
-		if zone > self.n_bins:
+		if zone >= self.n_zones:
 			print("zone out of range %i" % zone)
 			return -1
 
-		N_int = (t_int * self.n_bins * self.n_stars 
+		N_int = (t_int * self.n_zones * self.n_stars 
 			+ zone * self.n_stars
 			+ n)
 		if N_int < 0:
@@ -218,7 +221,7 @@ cdef class c_gaussian_stars:
 
 	@property
 	def radial_bins(self):
-		return [self._radial_bins[i] for i in range(self.n_bins + 1)]
+		return [self._radial_bins[i] for i in range(self.n_zones+1)]
 
 	def get_r_birth(self, i):
 		if 0 <= i < self.N_idx:
@@ -228,13 +231,16 @@ cdef class c_gaussian_stars:
 		if 0 <= i < self.N_idx:
 			return self._r_final[i]
 
+	def get_n_zones(self):
+		return self.n_zones
+
 	@radial_bins.setter
 	def radial_bins(self, value):
 		value = _pyutils.copy_array_like_object(value)
 		_pyutils.numeric_check(value, TypeError,
 			"Non-numerical value detected.")
 		value = sorted(value)
-		self.n_bins = len(value) - 1
+		self.n_zones = len(value) - 1
 		if self._radial_bins is not NULL: 
 			free(self._radial_bins)
 		self._radial_bins = _cutils.copy_pylist(value)

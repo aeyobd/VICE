@@ -13,8 +13,9 @@ except NameError:
 
 if not __VICE_SETUP__:
 
-	__all__ = ["rand_walk_stars"]
+	__all__ = ["rand_walk_stars", "test"]
 	from .rand_walk_stars import rand_walk_stars
+	from .tests import test
 
 else:
 	pass

@@ -485,7 +485,7 @@ _CFILES_ = {
 		"./vice/src/io/utils.c",
 		"./vice/src/utils.c"
 	],
-	"vice.toolkit.gaussian._gaussian_stars": [
+	"vice.toolkit.analytic_stars._analytic_stars_2d": [
 		"./vice/src/utils.c"
 	],
 	"vice.toolkit.interpolation._interp_scheme_2d": [

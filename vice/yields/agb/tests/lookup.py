@@ -61,7 +61,9 @@ def test():
 			lookup_generator("Ventura et al. (2013)",
 				study = "ventura13")(),
 			lookup_generator("Karakas & Lugaro (2016) ; Karakas et al. (2018)",
-				study = "karakas16")()
+				study = "karakas16")(),
+			lookup_generator("nugrid",
+				study = "pignatari16")()
 		]
 	]
 

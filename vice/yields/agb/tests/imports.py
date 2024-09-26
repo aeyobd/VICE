@@ -21,7 +21,8 @@ def test():
 			test_cristallo11_import(),
 			test_karakas10_import(),
 			test_ventura13_import(),
-			test_karakas16_import()
+			test_karakas16_import(),
+			test_pignatari16_import(),
 		]
 	]
 
@@ -94,3 +95,19 @@ def test_karakas16_import():
 		return all([settings[i] == "karakas16" for i in _RECOGNIZED_ELEMENTS_])
 	return ["vice.yields.agb.karakas16", test]
 
+
+@unittest
+def test_pignatari16_import():
+	r"""
+	from vice.yields.agb import pignatari16 unittest
+	"""
+
+	def test():
+		try:
+			from .. import pignatari16
+		except:
+			return False
+		from .. import settings
+		return all([settings[i] == "pignatari16" for i in _RECOGNIZED_ELEMENTS_])
+	
+	return ["vice.yields.agb.pignatari16", test]

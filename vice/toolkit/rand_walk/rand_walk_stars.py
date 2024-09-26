@@ -65,11 +65,18 @@ class rand_walk_stars:
 			rad_bins = np.array(rad_bins)
 		if name is not None:
 			filename = name + "_rand_walks.dat"
+		else:
+			filename = None
 		self.__c_version = c_rand_walk_stars(rad_bins, filename=filename, **kwargs)
 
 
 	def __call__(self, zone, tform, time, n=0):
-		return self.__c_version.__call__(zone, tform, time, n=n)
+		val = self.__c_version.call(zone, tform, time, n=n)
+		if val < 0:
+			raise ValueError(f"could not calculate bin got {val}. Reference {zone} {tform} {time} {n}")
+		if val > len(self.radial_bins) - 1:
+			raise ValueError(f"could not calculate bin: got {val}. Reference {zone} {tform} {time} {n}")
+		return val
 
 
 	def __enter__(self):
@@ -114,8 +121,3 @@ class rand_walk_stars:
 	@write.setter
 	def write(self, a):
 		self.__c_version.write = a
-	
-
-
-
-

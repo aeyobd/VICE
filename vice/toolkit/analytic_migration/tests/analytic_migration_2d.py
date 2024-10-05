@@ -7,8 +7,11 @@ from ....testing import moduletest, unittest
 import sys
 
 
-_RAD_BINS_ = [0.25 * i for i in range(81) ]
-_TEST_TIMES_ = [0.05 * i for i in range(245) ] 
+_DT_ = 0.1
+_DR_ = 0.25
+_RAD_BINS_ = [_DR_ *  i for i in range(81) ]
+_TEST_TIMES_ = [0.05 * i for i in range(240) ] 
+_BIRTH_TIMES_ = [ _DT_ * i for i in range(120)]
 
 @moduletest
 def test():
@@ -20,6 +23,7 @@ def test():
 			test_initialize(),
 			test_radial_bins_setter(),
 			test_call(),
+			test_sqrt_migration(),
 		]
 	]
 
@@ -33,7 +37,7 @@ def test_initialize():
 		global _TEST_
 
 		try:
-			_TEST_ = analytic_migration_2d(_RAD_BINS_)
+			_TEST_ = analytic_migration_2d(_RAD_BINS_, dt=_DT_)
 		except:
 			return False
 		return isinstance(_TEST_, analytic_migration_2d)
@@ -62,51 +66,54 @@ def test_radial_bins_setter():
 	return ["vice.toolkit.analytic_migration_2d.analytic_migration_2d.radial_bins.setter", test]
 
 
+
+def test_particle_birth(bin_idx, time_idx):
+	t = _BIRTH_TIMES_[time_idx]
+	x = _TEST_(bin_idx, t, t)
+	if not isinstance(x, int):
+		sys.stdout.write("migration returned non-integer at bin_idx=%d, t_birth_idx = %d, t_idx = %d\n" % (bin_idx, time_idx, time_idx))
+		sys.stdout.write(str(type(x)))
+		return False
+
+	if not (x == bin_idx):
+		sys.stdout.write("particle not born in correct bin, got %d" % x)
+		sys.stdout.write("bin_idx = %d, time_idx = %d, x = %d\n" % (bin_idx, time_idx, x))
+		return False
+
+	return True
+
+
+def test_particle_later(zone, birth_idx, time_idx):
+	x = _TEST_(zone, _BIRTH_TIMES_[birth_idx], _BIRTH_TIMES_[time_idx])
+	if not isinstance(x, int):
+		sys.stdout.write("migration returned non-integer at zone_birth=%d, t_birth_idx = %d, t_idx = %d\n" % (zone, birth_idx, time_idx))
+		return False
+
+	if not (0 <= x < len(_RAD_BINS_)):
+		sys.stdout.write("migration returned star out of bounds at zone_birth=%d, t_birth_idx = %d, t_idx = %d\n" % (zone, birth_idx, time_idx))
+		sys.stdout.write("binid = %d\n" % x)
+		return False
+	return True
+
+def test_particle(bin_idx, time_idx):
+	if not test_particle_birth(bin_idx, time_idx):
+		return False
+
+	for k in range(time_idx+1, len(_BIRTH_TIMES_)):
+		if not test_particle_later(bin_idx, time_idx, k):
+			return False
+
+	return True
+
 @unittest 
 def test_call():
-
-	def test_particle_birth(bin_idx, time_idx):
-		x = _TEST_(bin_idx, _TEST_TIMES_[time_idx], _TEST_TIMES_[time_idx])
-		if not isinstance(x, int):
-			sys.stdout.write("not an int at i = %d, j = %d, x=%d\n" % (bin_idx, time_idx, x))
-			sys.stdout.write(str(type(x)))
-			return False
-
-		if not (x == bin_idx):
-			sys.stdout.write("init failed at i = %d, j = %d, x=%d\n" % (bin_idx, time_idx, x))
-			return False
-
-		return True
-
-
-	def test_particle_later(zone, birth_idx, time_idx):
-		x = _TEST_(zone, _TEST_TIMES_[birth_idx], _TEST_TIMES_[time_idx])
-		if not isinstance(x, int):
-			sys.stdout.write("not an int at i = %d, j = %d, k = %d\n" % (zone, birth_idx, k))
-			return False
-
-		if not (0 <= x < len(_RAD_BINS_)):
-			sys.stdout.write("out of bounds at i = %d, j = %d, k = %d\n" % (zone, birth_idx, k))
-			return False
-		return True
-
-	def test_particle(bin_idx, time_idx):
-		if not test_particle_birth(bin_idx, time_idx):
-			return False
-
-		for k in range(time_idx+1, len(_TEST_TIMES_)):
-			if not test_particle_later(bin_idx, time_idx, k):
-				return False
-
-		return True
-
 	def test():
 		try:
 			status = True
 			i = 0
 			while (i < len(_RAD_BINS_) - 1) and status:
 				j = 0
-				while (j < len(_TEST_TIMES_) - 1) and status:
+				while (j < len(_BIRTH_TIMES_) - 1) and status:
 					status &= test_particle(i, j)
 					j += 1
 				# end for j
@@ -125,3 +132,36 @@ def test_call():
 	# end test
 
 	return ["vice.toolkit.analytic_migration_2d.analytic_migration_2d.call", test]
+
+
+
+
+@unittest 
+def test_sqrt_migration():
+	def test():
+		zone_birth = 40
+		t_idx_birth = 100
+		n = 1
+		
+		star = _TEST_._analytic_migration_2d__c_version.get_star(zone_birth, t_idx_birth, n)
+
+		R_birth = star["R_birth"]
+		R_final = star["R_final"]
+		t_birth = star["t_birth"]
+		t_end = star["t_end"]
+
+		for i in range(t_idx_birth, len(_BIRTH_TIMES_)):
+			time = _BIRTH_TIMES_[i]
+			delta_t = time - t_birth
+
+			R_expected = R_birth + (R_final - R_birth) * (delta_t / (t_end - t_birth))**0.5
+			R_actual = _RAD_BINS_[_TEST_(zone_birth, t_birth, time, n)]
+
+			if not (abs(R_expected - R_actual) < _DR_):
+				sys.stdout.write("R_expected = %f, R_actual = %f\n" % (R_expected, R_actual))
+				sys.stdout.write("zone_birth = %d, t_birth = %f, time = %f\n" % (zone_birth, t_birth, time))
+				return False
+		return True
+
+	return ["vice.toolkit.analytic_migration_2d.analytic_migration_2d.sqrt_migration", test]
+

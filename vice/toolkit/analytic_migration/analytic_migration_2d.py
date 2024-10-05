@@ -7,7 +7,10 @@ import numpy as np
 class analytic_migration_2d:
 
 	r"""
-    A generalized, fast function migration for vice
+    A generalized, fast function migration for vice.
+    Given functions which populate the initial and final positions in (R, z)
+    of each star and a functional form to interpolate between the endpoints,
+    this class implements the resulting migration.
 
 	**Signature**: vice.toolkit.analytic_migration.analytic_migration_2d(
 		radial_bins, 
@@ -18,6 +21,10 @@ class analytic_migration_2d:
 
 	Parameters
 	----------
+    f_initial : function
+    f_final : function
+    f_migration : function
+
 	radial_bins : array-like [elements must be positive real numbers]
 		The bins in galactocentric radius in kpc describing the disk model.
 		This must extend from 0 to at least 20. Need not be sorted in any
@@ -31,6 +38,7 @@ class analytic_migration_2d:
 		Migration timescale in Gyr
 	sigma_R: float [default : 1.27]
 		Migration distance scale in kpc
+	boundary_conditions: str [default : "reflect"]
 	
 
 	Attributes
@@ -42,11 +50,11 @@ class analytic_migration_2d:
 	analog_index : int
 		The index of the star particle acting as the current analog. -1 if the
 		analog has not yet been set (see note below under `Calling`_).
+
 	Calling
 	-------
 	As all stellar migration prescriptions must, this object can be called
 	with three parameters, in the following order:
-
 		zone : int
 			The zone index of formation of the stellar population. Must be
 			non-negative.
@@ -54,7 +62,6 @@ class analytic_migration_2d:
 			The time of formation of the stellar population in Gyr.
 		time : float
 			The simulation time in Gyr (i.e. not the age of the star particle).
-
 		n: int
 			The id of the star particle
 	"""
@@ -93,7 +100,8 @@ class analytic_migration_2d:
 	def get_r_birth(self, i):
 		return self.__c_version.get_r_birth(i)
 
-
+	def write_initial_final(self, filename):
+		self.__c_version.write_initial_final(filename)
 
 	@property
 	def radial_bins(self):
@@ -111,14 +119,6 @@ class analytic_migration_2d:
 		self.__c_version.radial_bins = value
 
 	@property
-	def idx(self):
-		return self.__c_version.idx
-
-	@property
-	def mode(self):
-		return "diffusion"
-
-	@property
 	def write(self):
 		return self.__c_version.write
 
@@ -130,5 +130,5 @@ class analytic_migration_2d:
 	def n_zones(self):
 		return self.__c_version.get_n_zones()
 
-
+    
 

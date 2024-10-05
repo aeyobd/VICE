@@ -18,7 +18,7 @@ def read_battino(file_path, skip_rows):
             values = parts[1:]
             data[idx] = [float(v) for v in values]
 
-    return data, header
+    return data, header[1:]
 
 def sum_isotopes(data):
     summed_data = {}

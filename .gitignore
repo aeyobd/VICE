@@ -127,6 +127,8 @@ vice/src/tests/_utils.c
 vice/toolkit/hydrodisk/_hydrodiskstars.c
 vice/toolkit/rand_walk/_rand_walk_stars.c
 vice/toolkit/analytic_migration/_analytic_migration_2d.c
+vice/toolkit/analytic_migration/_migration_utils.c
+vice/toolkit/analytic_migration/_migration_models.c
 vice/toolkit/interpolation/_interp_scheme_1d.c
 vice/toolkit/interpolation/_interp_scheme_2d.c
 vice/version_breakdown.py

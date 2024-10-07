@@ -22,9 +22,17 @@ class analytic_migration_2d:
 
 	Parameters
 	----------
-	f_initial : function
-	f_final : function
-	f_migration : function
+	initial_positions : function(birth_radius, time, n)
+            Likely never needs changed, initializes a star to be within the zone
+
+	final_positions : function(birth_radius, time_birth, n, time_end)
+            Returns the final position of a star given its birth radius and time. 
+            May be any function returning (R, z) as floats.
+
+        migration_mode : str [default : "sqrt"]
+            The functional form of the migration. Options are:
+            - "linear" : linear migration in R and z
+            - "sqrt" : sqrt(R) migration in R and z
 
 	radial_bins : array-like [elements must be positive real numbers]
 		The bins in galactocentric radius in kpc describing the disk model.
@@ -78,23 +86,29 @@ class analytic_migration_2d:
 				n_stars=2, dt=0.02, t_end=13.5
 
 		):
+		if initial_positions is None:
+			zone_width = rad_bins[1] - rad_bins[0]
 
-		#if initial_positions is None
-		#	initial_positions = initial_positions_uniform(rad_bins)
-		#if final_positions is None:
-		#	final_positions = final_positions_gaussian()
+			initial_positions = initial_positions_uniform(
+				zone_width = zone_width,
+				R_min = min(rad_bins),
+				R_max = max(rad_bins),
+			)
+
+		if final_positions is None:
+			final_positions = final_positions_gaussian()
 		
-		#print("initial_positions", initial_positions)
-		#print("final_positions", final_positions)
 
 		self.__c_version = c_analytic_migration_2d(
 			rad_bins, 
 			filename = filename, 
-			initial_positions = None,
-			final_positions = None,
+			initial_positions = initial_positions,
+			final_positions = final_positions,
 			migration_mode = migration_mode,
 			boundary_conditions = boundary_conditions, 
 			n_stars = n_stars,
+			dt = dt,
+			t_end = t_end,
 		)
 
 
@@ -105,21 +119,16 @@ class analytic_migration_2d:
 
 		return val
 
+	def __dealloc__(self):
+		self.__c_version.dealloc()
 
-	def __enter__(self):
-		# Opens a with statement
-		return self
+	def get_star(self, zone, tint, n):
+		"""
+		Returns a dictionary of the stars initial and final positions given the 
+		stars birth zone, integer formation time, and number (in bin).
+		"""
+		return self.__c_version.get_star(zone, tint, n)
 
-
-	def __exit__(self, exc_type, exc_value, exc_tb):
-		# Raises all exceptions inside a with statement
-		return exc_value is None
-
-	def get_r_final(self, i):
-		return self.__c_version.get_r_final(i)
-
-	def get_r_birth(self, i):
-		return self.__c_version.get_r_birth(i)
 
 	def write_initial_final(self):
 		"""

@@ -43,20 +43,20 @@ cpdef double rand_sech2():
 	return atanh(u)
 
 
-cdef inline (double, double) sqrt_migration_2d(migration_star_2d* star, double time):
+cdef (double, double) sqrt_migration_2d(migration_star_2d* star, double time):
 	"""
 	A migration function that migrates a star in 2D with a square root
 	time dependence, i.e. moving between the initial and final position
 	as a linear function of the square root of time.
 	"""
 	cdef double x = (time - star.t_birth) / (star.t_end - star.t_birth)
-	cdef double R = star.R_birth + (star.R_final - star.R_birth) * x ** 0.5
-	cdef double z = star.z_birth + (star.z_final - star.z_birth) * x ** 0.5
+	cdef double R = star.R_birth + (star.R_final - star.R_birth) * sqrt(x)
+	cdef double z = star.z_birth + (star.z_final - star.z_birth) * sqrt(x)
 	return R, z
 
 
 
-cdef inline (double, double) linear_migration_2d(migration_star_2d* star, double time):
+cdef (double, double) linear_migration_2d(migration_star_2d* star, double time):
 	"""
 	A migration function that linearly interpolates the radius and height of a
 	star in time
@@ -67,7 +67,7 @@ cdef inline (double, double) linear_migration_2d(migration_star_2d* star, double
 	return R, z
 
 
-cdef inline int bin_of(double * bins, size_t n_bins, double R):
+cdef int bin_of(double * bins, size_t n_bins, double R):
 	"""
 	Efficient binary search for the bin index of a given radius R. 
 
@@ -92,7 +92,7 @@ cdef inline int bin_of(double * bins, size_t n_bins, double R):
 	return -1
 
 
-cdef inline double reflect_boundary(double R, double R_min, double R_max):
+cdef double reflect_boundary(double R, double R_min, double R_max):
 	"""
 	Reflects the radius R off of the boundaries R_min and R_max.
 	"""
@@ -108,7 +108,7 @@ cdef inline double reflect_boundary(double R, double R_min, double R_max):
 
 
 
-cdef inline double absorb_boundary(double R, double R_min, double R_max):
+cdef double absorb_boundary(double R, double R_min, double R_max):
 	"""
 	Absorbs the radius R into the boundaries R_min and R_max.
 
@@ -122,7 +122,7 @@ cdef inline double absorb_boundary(double R, double R_min, double R_max):
 	return R
 
 
-cdef inline double no_boundary(double R, double R_min, double R_max):
+cdef double no_boundary(double R, double R_min, double R_max):
 	"""
 	Does nothing to the radius R.
 	"""
@@ -180,7 +180,7 @@ cdef class array_3d:
 			self.array = NULL
 
 
-	cdef void set_value(self, int i, int j, int k, double value):
+	cpdef void set_value(self, int i, int j, int k, double value):
 		"""
 		Sets the value of the array at position (i, j, k) to value.
 		"""
@@ -190,7 +190,7 @@ cdef class array_3d:
 		self.array[idx] = value
 
 
-	cdef double get(self, int i, int j, int k):
+	cpdef double get(self, int i, int j, int k):
 		"""
 		Returns the value of the array at position (i, j, k).
 		"""

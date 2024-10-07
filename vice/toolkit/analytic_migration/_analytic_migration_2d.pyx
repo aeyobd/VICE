@@ -10,10 +10,13 @@ cimport cython
 
 from libc.stdlib cimport malloc, free
 
-from . cimport _migration_utils
-from ._migration_utils cimport bin_of, no_boundary, reflect_boundary, absorb_boundary, array_3d, migration_star_2d, sqrt_migration_2d, linear_migration_2d 
+from . cimport _migration_utils 
+from ._migration_utils cimport bin_of, no_boundary, reflect_boundary, absorb_boundary, array_3d, migration_star_2d, sqrt_migration_2d, linear_migration_2d, to_double_ptr
+from ._migration_utils import sqrt_migration_2d_py, linear_migration_2d_py, reflect_boundary_py, absorb_boundary_py, no_boundary_py
 
 
+ctypedef (double, double) (*MigrationFunc)(migration_star_2d*, double )
+ctypedef double (*BoundaryFunc)(double, double, double )
 
 cdef class c_analytic_migration_2d:
 	"""
@@ -33,10 +36,10 @@ cdef class c_analytic_migration_2d:
 	cdef double dt
 	cdef double t_end
 
-	cdef array_3d _R_birth
-	cdef array_3d _R_final
-	cdef array_3d _z_birth
-	cdef array_3d _z_final
+	cdef object _R_birth
+	cdef object _R_final
+	cdef object _z_birth
+	cdef object _z_final
 
 	cdef double R_min
 	cdef double R_max
@@ -44,12 +47,13 @@ cdef class c_analytic_migration_2d:
 	cdef double* _radial_bins
 
 	cdef bint _write
+	cdef object migration_func
+	cdef object boundary_func
 
-	cdef inline (double, double) (*migration_func)(migration_star_2d*, double )
-	cdef inline double (*boundary_func)(double, double, double )
+	cdef str filename
 
 
-	def __cinit__(self, radbins,
+	def __cinit__(self, radbins,*,
 			str migration_mode,
 			object initial_positions,
 			object final_positions,
@@ -59,11 +63,7 @@ cdef class c_analytic_migration_2d:
 			str filename=None,
 			str boundary_conditions="reflect",
 		):
-		"""
-		See python documentation for analytic migration 2D
-		"""
-
-		print("started initialization")
+		# initialize all the variables to null/default values unless numeric
 
 		self.dt = dt
 		self.t_end = t_end
@@ -71,66 +71,83 @@ cdef class c_analytic_migration_2d:
 		self.n_stars = n_stars
 		self.n_t = round(t_end / dt)
 		self.n_zones = len(radbins) - 1
+		self._write = False
+		self.filename = ""
+		self.R_min = NAN
+		self.R_max = NAN
 
-		print("set scalars")
+		self._radial_bins = NULL
+
+		self.alloc_arrays()
+
+
+	def __init__(self, radbins,
+			str migration_mode, 
+	      		object initial_positions,
+			object final_positions, 
+			int n_stars, 
+			double dt, 
+			double t_end, 
+			str filename=None,
+			str boundary_conditions="reflect",
+		):
+		"""
+		see python version of class (vice.toolkit.analytic_migration.analytic_migration_2d)
+		"""
 
 		self.radial_bins = radbins
-		print("set radial bins")
 		self.filename = filename
-		print("set filename")
 		self._write = False
-		
-		print("allocating arrays")
-		self.alloc_arrays()
-		print("rays allocated")
-
-		print("initial_positions in cy", initial_positions)
-		print("final_positions in cy", final_positions)
 
 		self.R_min = self._radial_bins[0]
 		self.R_max = self._radial_bins[self.n_zones]
 
 		self.set_migration_mode(migration_mode)
 		self.set_boundary_conditions(boundary_conditions)
+		self.init_radii(initial_positions, final_positions)
+
 
 	cpdef alloc_arrays(self):
-		"""Allowocates the arrays for the particle positions."""
+		"Allowocates the array objects of the class to hold the star properties."
 		self._R_birth = array_3d(self.n_zones, self.n_t, self.n_stars)
 		self._R_final = array_3d(self.n_zones, self.n_t, self.n_stars)
 		self._z_birth = array_3d(self.n_zones, self.n_t, self.n_stars)
 		self._z_final = array_3d(self.n_zones, self.n_t, self.n_stars)
 
 
-	def set_migration_mode(self, migration_mode):
+	cdef set_migration_mode(self, migration_mode):
 		if migration_mode == "sqrt":
-			self.migration_func = &sqrt_migration_2d
+			self.migration_func = sqrt_migration_2d_py
 		elif migration_mode == "linear":
-			self.migration_func = &linear_migration_2d
+			self.migration_func = linear_migration_2d_py
 		else:
 			raise ValueError("migration mode not know")
 
 
-	def set_boundary_conditions(self, boundary_conditions):
+
+	cdef set_boundary_conditions(self, boundary_conditions):
 		"""
 		Sets the boundary conditions for the migration model.
 
 		Parameters
 		----------
 		boundary_conditions : str
-			The boundary conditions to apply. Options are "reflect", "absorb", "reflect_final", "absorb_final".
+			The boundary conditions to apply. Options are
+			"reflect", "absorb", "reflect_final", "absorb_final".
 		"""
 		if boundary_conditions == "reflect_final":
 			self.apply_final_boundary(reflect_boundary)
-			self.boundary_func = no_boundary
+			self.boundary_func = no_boundary_py
 		elif boundary_conditions == "absorb_final":
 			self.apply_final_boundary(absorb_boundary)
-			self.boundary_func = no_boundary
+			self.boundary_func = no_boundary_py
 		elif boundary_conditions == "reflect":
-			self.boundary_func = reflect_boundary
+			self.boundary_func = reflect_boundary_py
 		elif boundary_conditions == "absorb":
-			self.boundary_func = absorb_boundary
+			self.boundary_func = absorb_boundary_py
 		else:
 			raise ValueError("Invalid boundary condition.")
+
 
 	def __call__(self, int zone, double tform, double time, int n=0):
 		"""
@@ -170,7 +187,7 @@ cdef class c_analytic_migration_2d:
 
 		cdef migration_star_2d star = self.get_star(zone, time_int, n)
 
-		R_new, z_new = self.migration_func(&star, time)
+		R_new, z_new = self.migration_func(star, time)
 		R_new = self.boundary_func(R_new, self.R_min, self.R_max)
 
 		bin_id = bin_of(self._radial_bins, self.n_zones + 1, R_new)
@@ -201,10 +218,10 @@ cdef class c_analytic_migration_2d:
 			for i in range(self.n_t):
 				for n in range(self.n_stars):
 					time = self.dt * i
+					r_i = (self._radial_bins[zone] + self._radial_bins[zone + 1]) / 2
+					r_i, z_i = f_initial(r_i, time, n)
 
-					r_i, z_i = f_initial(self.radial_bins, zone, time, n)
-
-					r_f, z_f = f_final(r_i, time, n)
+					r_f, z_f = f_final(r_i, time, n, self.t_end)
 
 					self._R_birth.set_value(zone, i, n, r_i)
 					self._R_final.set_value(zone, i, n, r_f)
@@ -246,13 +263,11 @@ cdef class c_analytic_migration_2d:
 
 	@radial_bins.setter
 	def radial_bins(self, value):
-		value = _pyutils.copy_array_like_object(value)
-		_pyutils.numeric_check(value, TypeError,
-			"Non-numerical value detected.")
-		value = sorted(value)
-		self.n_zones = len(value) - 1
 		if self._radial_bins is not NULL: free(self._radial_bins)
-		self._radial_bins = _cutils.copy_pylist(value)
+		cdef double* value_c
+		value_c, length = to_double_ptr(value)
+		self._radial_bins = value_c
+		self.n_zones = length - 1
 
 
 	def get_n_zones(self):
@@ -273,14 +288,16 @@ cdef class c_analytic_migration_2d:
 		if a and self.filename != "":
 			self.write_header()
 
-	def __dealloc__(self):
+	def dealloc(self):
 		if self._radial_bins is not NULL:
 			free(self._radial_bins)
-
 		self._R_birth.free()
 		self._R_final.free()
 		self._z_birth.free()
 		self._z_final.free()
+
+	def __dealloc__(self):
+		self.dealloc()
 
 	def write_header(self):
 		if self.filename == "":

@@ -16,9 +16,11 @@ if not __VICE_SETUP__:
 		"""
 		vice.toolkit.analytic_migration_2d module test
 		"""
-		return ["vice.toolkit.analytic_migration_2d", 
-		    migration_utils.test(),
-			analytic_migration_2d.test(),
+		return ["vice.toolkit.analytic_migration_2d",
+			[
+				migration_utils.test(), 
+				analytic_migration_2d.test(),
+			]
 		]
 else:
 	pass

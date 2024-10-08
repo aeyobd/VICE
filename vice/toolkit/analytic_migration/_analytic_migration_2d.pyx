@@ -10,47 +10,46 @@ cimport cython
 
 from libc.stdlib cimport malloc, free
 
-from . cimport _migration_utils 
-from ._migration_utils cimport bin_of, no_boundary, reflect_boundary, absorb_boundary, array_3d, migration_star_2d, sqrt_migration_2d, linear_migration_2d, to_double_ptr
-from ._migration_utils import sqrt_migration_2d_py, linear_migration_2d_py, reflect_boundary_py, absorb_boundary_py, no_boundary_py
+from . cimport _migration_utils  as mu
+
+from ._migration_utils import migration_sqrt, migration_sqrt_z, migration_linear, migration_linear_z, reflect_boundary, absorb_boundary, no_boundary
 
 
-ctypedef (double, double) (*MigrationFunc)(migration_star_2d*, double )
-ctypedef double (*BoundaryFunc)(double, double, double )
+ctypedef double (*MigrationFunc)(mu.migration_star_2d, double ) except -1
+ctypedef double (*MigrationFunc_Z)(mu.migration_star_2d, double ) except -1
+
+ctypedef double (*BoundaryFunc)(double, double, double ) except -1
+
 
 cdef class c_analytic_migration_2d:
 	"""
 	The C-implementation of a generalized functional migration model.
-
-	The initial and final radii are determined from the functions f_initial
-	and f_final which are called with the signature f(r_bins, zone, t, n) and 
-	f_(r_bins, R_birth, tform, n). 
-	The functional form will be called with
-	f(migration_star_2d, time) and should return the new radius of the star.
+	See the python version for documentation.
 	"""
-
 	cdef public int n_zones
-	cdef int n_t
-	cdef int n_stars
+	cdef public int n_t
+	cdef public int n_stars
 
-	cdef double dt
-	cdef double t_end
+	cdef public double dt
+	cdef public double t_end
 
-	cdef object _R_birth
-	cdef object _R_final
-	cdef object _z_birth
-	cdef object _z_final
+	cdef mu.array_3d _R_birth
+	cdef mu.array_3d _R_final
+	cdef mu.array_3d _z_birth
+	cdef mu.array_3d _z_final
 
-	cdef double R_min
-	cdef double R_max
+	cdef public double R_min
+	cdef public double R_max
 
 	cdef double* _radial_bins
 
 	cdef bint _write
-	cdef object migration_func
+	cdef MigrationFunc migration_func
+	cdef MigrationFunc migration_func_z
 	cdef object boundary_func
 
-	cdef str filename
+	cdef public str filename
+	cdef public bint verbose
 
 
 	def __cinit__(self, radbins,*,
@@ -62,116 +61,101 @@ cdef class c_analytic_migration_2d:
 			double t_end, 
 			str filename=None,
 			str boundary_conditions="reflect",
+	       		bint verbose=False,
+	       		str initial_final_filename=None,
 		):
-		# initialize all the variables to null/default values unless numeric
+		"""See python initialization documentation"""
 
+		self.migration_func = NULL
+		self._radial_bins = NULL
+
+		# scalar properties
 		self.dt = dt
 		self.t_end = t_end
-
 		self.n_stars = n_stars
 		self.n_t = round(t_end / dt)
 		self.n_zones = len(radbins) - 1
-		self._write = False
-		self.filename = ""
-		self.R_min = NAN
-		self.R_max = NAN
-
-		self._radial_bins = NULL
-
-		self.alloc_arrays()
-
-
-	def __init__(self, radbins,
-			str migration_mode, 
-	      		object initial_positions,
-			object final_positions, 
-			int n_stars, 
-			double dt, 
-			double t_end, 
-			str filename=None,
-			str boundary_conditions="reflect",
-		):
-		"""
-		see python version of class (vice.toolkit.analytic_migration.analytic_migration_2d)
-		"""
-
-		self.radial_bins = radbins
+		self.verbose = verbose
 		self.filename = filename
 		self._write = False
 
+		self.info("allocating memory")
+		self.alloc_arrays()
+
+		self.info("setting radial bins & mode")
+		self.radial_bins = radbins
 		self.R_min = self._radial_bins[0]
 		self.R_max = self._radial_bins[self.n_zones]
 
 		self.set_migration_mode(migration_mode)
-		self.set_boundary_conditions(boundary_conditions)
+
+		self.info("initializing radii")
+
 		self.init_radii(initial_positions, final_positions)
+		self.set_boundary_conditions(boundary_conditions)
+
+		if initial_final_filename is not None:
+			self.info("writting initial/final data")
+			self.write_initial_final(initial_final_filename)
+
+		self.info("fully initialized")
 
 
+	def info(self, str message):
+		"""prints an info message if verbose is set"""
+		if self.verbose:
+			print("[migration info]    ", message)
+	
 	cpdef alloc_arrays(self):
-		"Allowocates the array objects of the class to hold the star properties."
-		self._R_birth = array_3d(self.n_zones, self.n_t, self.n_stars)
-		self._R_final = array_3d(self.n_zones, self.n_t, self.n_stars)
-		self._z_birth = array_3d(self.n_zones, self.n_t, self.n_stars)
-		self._z_final = array_3d(self.n_zones, self.n_t, self.n_stars)
+		"""Allocates memory for each of the arrays"""
+		self._R_birth = mu.array_3d(self.n_zones, self.n_t, self.n_stars)
+		self._R_final = mu.array_3d(self.n_zones, self.n_t, self.n_stars)
+		self._z_birth = mu.array_3d(self.n_zones, self.n_t, self.n_stars)
+		self._z_final = mu.array_3d(self.n_zones, self.n_t, self.n_stars)
 
 
-	cdef set_migration_mode(self, migration_mode):
+	cdef int set_migration_mode(self, str migration_mode) except -1:
+		"""Sets the migration mode, see python class description"""
 		if migration_mode == "sqrt":
-			self.migration_func = sqrt_migration_2d_py
+			self.migration_func = mu.c_migration_sqrt
+			self.migration_func_z = mu.c_migration_sqrt_z
 		elif migration_mode == "linear":
-			self.migration_func = linear_migration_2d_py
+			self.migration_func = mu.c_migration_linear
+			self.migration_func_z = mu.c_migration_linear_z
 		else:
 			raise ValueError("migration mode not know")
+			return -1
+		return 0
 
 
 
-	cdef set_boundary_conditions(self, boundary_conditions):
-		"""
-		Sets the boundary conditions for the migration model.
-
-		Parameters
-		----------
-		boundary_conditions : str
-			The boundary conditions to apply. Options are
-			"reflect", "absorb", "reflect_final", "absorb_final".
-		"""
+	cdef int set_boundary_conditions(self, str boundary_conditions) except -1:
+		""" See python initialization documentation for details. """
 		if boundary_conditions == "reflect_final":
-			self.apply_final_boundary(reflect_boundary)
-			self.boundary_func = no_boundary_py
+			self.apply_final_boundary(mu.c_reflect_boundary)
+			self.boundary_func = no_boundary
 		elif boundary_conditions == "absorb_final":
-			self.apply_final_boundary(absorb_boundary)
-			self.boundary_func = no_boundary_py
+			self.apply_final_boundary(mu.c_absorb_boundary)
+			self.boundary_func = no_boundary
 		elif boundary_conditions == "reflect":
-			self.boundary_func = reflect_boundary_py
+			self.boundary_func = reflect_boundary
 		elif boundary_conditions == "absorb":
-			self.boundary_func = absorb_boundary_py
+			self.boundary_func = absorb_boundary
 		else:
 			raise ValueError("Invalid boundary condition.")
+			return -1
+		return 0
 
 
 	def __call__(self, int zone, double tform, double time, int n=0):
-		"""
-		Applies the migration model to a star.
-
-		Parameters
-		----------
-		zone : int
-			The zone of the star.
-		tform : float
-			The formation time of the star.
-		time : float
-			The time to migrate to.
-		n : int
-			The star number.
-
-		Returns
-		-------
-		int
-			The new zone of the star.
-		"""
+		"see python documentation for the class"
 		return self.call(zone, tform, time, n)
 
+
+
 	cdef call(self, int zone, double tform, double time, int n=0):
+		"see __call__ documentation in python version"
+
 		cdef int bin_id
 		cdef double R_new
 		cdef double z_new
@@ -185,32 +169,50 @@ cdef class c_analytic_migration_2d:
 		if n >= self.n_stars or n < 0:
 			return -1
 
-		cdef migration_star_2d star = self.get_star(zone, time_int, n)
+		cdef mu.migration_star_2d star = self.get_star(zone, time_int, n)
 
-		R_new, z_new = self.migration_func(star, time)
+		R_new = self.migration_func(star, time)
 		R_new = self.boundary_func(R_new, self.R_min, self.R_max)
 
-		bin_id = bin_of(self._radial_bins, self.n_zones + 1, R_new)
+		bin_id = mu.c_bin_of(self._radial_bins, self.n_zones + 1, R_new)
 
 		if self.write:
-			self.write_migration(f"{zone},{time_int},{n},{time},{R_new},{z_new},{bin_id}\n")
-			
+			z_new = self.migration_func_z(star, time)
+			self.write_migration(
+				zone=zone,
+				time_int=time_int,
+				n=n,
+				time=time,
+				R=R_new,
+				z=z_new,
+				bin_id=bin_id
+			)
 		return bin_id
 
 
-	cpdef migration_star_2d get_star(self, int zone, int t_idx, int n):
-
-		cdef migration_star_2d star
+	cpdef mu.migration_star_2d get_star(self, int zone, int t_idx, int n):
+		"Retrieves a migration_star_2d particle matching the given index"
+		cdef mu.migration_star_2d star
 		star.R_birth = self._R_birth.get(zone, t_idx, n)
 		star.R_final = self._R_final.get(zone, t_idx, n)
 		star.z_birth = self._z_birth.get(zone, t_idx, n)
 		star.z_final = self._z_final.get(zone, t_idx, n)
 		star.t_birth = self.dt * t_idx
-		star.t_end = self.t_end
+		star.t_final = self.t_end
 		return star
 
 
 	cpdef init_radii(self, f_initial, f_final):
+		"""Initializes the radii for this class
+		
+		f_initial is expected to be a function which takes 
+		three arguments, the initial radius, the time, and the star number.
+		and returns a tuple of doubles for R and Z.
+
+		f_final is similar except it also takes an additional fourth argument
+		for the final time of the simulation.
+		"""
+
 		cdef double r_i, r_f, z_i, z_f
 		cdef double time
 		cdef int zone, i, n
@@ -230,6 +232,10 @@ cdef class c_analytic_migration_2d:
 
 
 	cpdef void apply_final_boundary(self, boundary_func):
+		"""
+		If the radii are initialized, applies boundary contitions to
+		any values which may fall outside of the radial bins
+		"""
 		cdef int i, j, k
 		cdef double R_new 
 		for i in range(self.n_zones):
@@ -241,6 +247,9 @@ cdef class c_analytic_migration_2d:
 
 
 	cpdef write_initial_final(self, filename):
+		if filename == None:
+			raise ValueError("filename is None")
+
 		cdef int i, j, k
 		cdef double R_birth, R_final, z_birth, z_final
 
@@ -264,8 +273,9 @@ cdef class c_analytic_migration_2d:
 	@radial_bins.setter
 	def radial_bins(self, value):
 		if self._radial_bins is not NULL: free(self._radial_bins)
+
 		cdef double* value_c
-		value_c, length = to_double_ptr(value)
+		value_c, length = mu.to_double_ptr(value)
 		self._radial_bins = value_c
 		self.n_zones = length - 1
 
@@ -277,18 +287,20 @@ cdef class c_analytic_migration_2d:
 	def write(self):
 		return self._write
 
+
 	@write.setter
 	def write(self, a):
-		if self.filename == "":
+		if self.filename is None:
 			print("warning, filename not set, so will not write")
 			self._write = False
 		else:
 			self._write = a
 
-		if a and self.filename != "":
+		if a and self.filename is not None:
 			self.write_header()
 
 	def dealloc(self):
+		"""Deallocates any memory managed used by this class."""
 		if self._radial_bins is not NULL:
 			free(self._radial_bins)
 		self._R_birth.free()
@@ -299,15 +311,17 @@ cdef class c_analytic_migration_2d:
 	def __dealloc__(self):
 		self.dealloc()
 
-	def write_header(self):
-		if self.filename == "":
+	cpdef write_header(self):
+		"writes the header for the migration data"
+		if self.filename is None:
 			return
 		with open(self.filename, "w") as f:
 			f.write(f"zone,time_int,n,time,R,z,bin_id\n")
 
-	def write_migration(self, s):
-		if self.filename == "":
+	cpdef write_migration(self, zone, time_int, n, time, R, z, bin_id):
+		"writes the migration data to the file"
+		if self.filename is None:
 			return
 
 		with open(self.filename, "a") as f:
-			f.write(s)
+			f.write(f"{zone},{time_int},{n},{time},{R},{z},{bin_id}\n")

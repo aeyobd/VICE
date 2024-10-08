@@ -148,13 +148,13 @@ def test_sqrt_migration():
 		R_birth = star["R_birth"]
 		R_final = star["R_final"]
 		t_birth = star["t_birth"]
-		t_end = star["t_end"]
+		t_final = star["t_final"]
 
 		for i in range(t_idx_birth, len(_BIRTH_TIMES_)):
 			time = _BIRTH_TIMES_[i]
 			delta_t = time - t_birth
 
-			R_expected = R_birth + (R_final - R_birth) * (delta_t / (t_end - t_birth))**0.5
+			R_expected = R_birth + (R_final - R_birth) * (delta_t / (t_final - t_birth))**0.5
 			R_actual = _RAD_BINS_[_TEST_(zone_birth, t_birth, time, n)]
 
 			if not (abs(R_expected - R_actual) < _DR_):

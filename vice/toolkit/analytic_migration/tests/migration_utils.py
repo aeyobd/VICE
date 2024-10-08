@@ -3,8 +3,9 @@ from __future__ import absolute_import
 from ....testing import moduletest, unittest
 
 from .._migration_utils import rand_sech2, array_3d
-from .._migration_utils import bin_of_py, sqrt_migration_2d_py, linear_migration_2d_py
-from .._migration_utils import reflect_boundary_py, absorb_boundary_py, no_boundary_py
+from .._migration_utils import bin_of, migration_sqrt, migration_linear
+from .._migration_utils import migration_sqrt_z, migration_linear_z
+from .._migration_utils import reflect_boundary, absorb_boundary, no_boundary
 
 
 from math import exp, isnan
@@ -34,11 +35,11 @@ def test_bin_of():
 	def test():
 		try:
 			bins = [1, 2, 3]
-			assert bin_of_py(bins, 1.5) == 0
-			assert bin_of_py(bins, 1) == 0
-			assert bin_of_py(bins, 2.9) == 1
-			assert bin_of_py(bins, 3.02) == -1
-			assert bin_of_py(bins, 0.9) == -1
+			assert bin_of(bins, 1.5) == 0
+			assert bin_of(bins, 1) == 0
+			assert bin_of(bins, 2.9) == 1
+			assert bin_of(bins, 3.02) == -1
+			assert bin_of(bins, 0.9) == -1
 		except Exception as e:
 			print(e)
 			return False
@@ -123,22 +124,26 @@ def test_sqrt_migration_2d():
 		try:
 			star = {
 					"t_birth": 5,
-					"t_end": 10, 
+					"t_final": 10, 
 					"R_birth": 1,
 					"R_final": 2,
 					"z_birth": 0,
 					"z_final": -0.5,
 					}
 
-			R, z = sqrt_migration_2d_py(star, 5)
+			R = migration_sqrt(star, 5)
 			assert R == 1
+			z = migration_sqrt_z(star, 5)
 			assert z == 0
 
-			R, z = sqrt_migration_2d_py(star, 10)
+			R = migration_sqrt(star, 10)
+			z = migration_sqrt_z(star, 10)
 			assert R == 2
 			assert z == -0.5
 
-			R, z = sqrt_migration_2d_py(star, 6.25)
+			
+			R = migration_sqrt(star, 6.25)
+			z = migration_sqrt_z(star, 6.25)
 			assert R == 1.5
 			assert z == -0.25
 
@@ -158,22 +163,26 @@ def test_linear_migration_2d():
 		try:
 			star = {
 					"t_birth": 5,
-					"t_end": 10, 
+					"t_final": 10, 
 					"R_birth": 1,
 					"R_final": 2,
 					"z_birth": 0,
 					"z_final": -0.5,
 					}
 
-			R, z = linear_migration_2d_py(star, 5)
+			R = migration_linear(star, 5)
+			z = migration_linear_z(star, 5)
+
 			assert R == 1
 			assert z == 0
 
-			R, z = linear_migration_2d_py(star, 10)
+			R = migration_linear(star, 10)
+			z = migration_linear_z(star, 10)
 			assert R == 2
 			assert z == -0.5
 
-			R, z = linear_migration_2d_py(star, 6.25)
+			R = migration_linear(star, 6.25)
+			z = migration_linear_z(star, 6.25)
 			assert R == 1.25
 			assert z == -0.125
 		except Exception as e:
@@ -192,11 +201,11 @@ def test_absorb_boundary():
 			R_min = 3.4
 			R_max = 5
 
-			assert absorb_boundary_py(-2.32, R_min, R_max) == R_min
-			assert absorb_boundary_py(3.3, R_min, R_max) == R_min
-			assert absorb_boundary_py(3.4, R_min, R_max) == 3.4
-			assert absorb_boundary_py(4.56, R_min, R_max) == 4.56
-			assert absorb_boundary_py(6.2, R_min, R_max) == 5
+			assert absorb_boundary(-2.32, R_min, R_max) == R_min
+			assert absorb_boundary(3.3, R_min, R_max) == R_min
+			assert absorb_boundary(3.4, R_min, R_max) == 3.4
+			assert absorb_boundary(4.56, R_min, R_max) == 4.56
+			assert absorb_boundary(6.2, R_min, R_max) == 5
 
 		except Exception as e:
 			print(e)
@@ -215,10 +224,10 @@ def test_reflect_boundary():
 			R_min = 2.5
 			R_max = 5
 
-			assert reflect_boundary_py(2, R_min, R_max) == 3
-			assert reflect_boundary_py(3.14, R_min, R_max) == 3.14
-			assert reflect_boundary_py(4.56, R_min, R_max) == 4.56
-			assert reflect_boundary_py(R_max, R_min, R_max) == 5
+			assert reflect_boundary(2, R_min, R_max) == 3
+			assert reflect_boundary(3.14, R_min, R_max) == 3.14
+			assert reflect_boundary(4.56, R_min, R_max) == 4.56
+			assert reflect_boundary(R_max, R_min, R_max) == 5
 
 		except Exception as e:
 			print(e)
@@ -236,10 +245,9 @@ def test_no_boundary():
 			R_min = 2.5
 			R_max = 5
 
-			assert isnan(no_boundary_py(1, R_min, R_max))
-			assert no_boundary_py(3.14, R_min, R_max) == 3.14
-			assert no_boundary_py(4.56, R_min, R_max) == 4.56
-			assert isnan(no_boundary_py(6, R_min, R_max))
+			assert no_boundary(3.14, R_min, R_max) == 3.14
+			assert no_boundary(4.56, R_min, R_max) == 4.56
+			# TODO: add assertRaises tests here
 
 		except Exception as e:
 			print(e)

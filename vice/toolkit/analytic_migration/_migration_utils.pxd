@@ -9,8 +9,6 @@ cdef extern from "../../src/utils.h":
 	double randn()
 
 
-print("loaded migration header")
-
 """"
 A struct to hold the migration parameters of a star in 2D.
 
@@ -20,7 +18,7 @@ Attributes:
 	z_birth: The birth z coordinate of the star.
 	z_final: The final z coordinate of the star.
 	t_birth: The birth time of the star.
-	t_end: The end time of the star (simulation).
+	t_final: The end time of the star (simulation).
 """
 cdef struct migration_star_2d:
 	double R_birth
@@ -28,18 +26,22 @@ cdef struct migration_star_2d:
 	double z_birth
 	double z_final
 	double t_birth
-	double t_end
+	double t_final
 
 
 
 cdef (double*, int) to_double_ptr(arr, bint sort=*)
 cpdef double rand_sech2() 
-cdef (double, double) sqrt_migration_2d(migration_star_2d*, double) 
-cdef (double, double) linear_migration_2d(migration_star_2d* star, double time)
-cdef int bin_of(double * bins, size_t n_bins, double R)
-cdef double reflect_boundary(double R, double R_min, double R_max) 
-cdef double absorb_boundary(double R, double R_min, double R_max)
-cdef double no_boundary(double R, double R_min, double R_max)
+cdef double  c_migration_sqrt(migration_star_2d, double) except -1
+cdef double  c_migration_sqrt_z(migration_star_2d, double) except -1
+
+cdef double c_migration_linear(migration_star_2d, double) except -1
+cdef double c_migration_linear_z(migration_star_2d, double) except -1
+
+cdef int c_bin_of(double * bins, size_t n_bins, double R) except -2
+cdef double c_reflect_boundary(double R, double R_min, double R_max)  except -1
+cdef double c_absorb_boundary(double R, double R_min, double R_max) except -1
+cdef double c_no_boundary(double R, double R_min, double R_max) except -1
 
 
 cdef class array_3d:

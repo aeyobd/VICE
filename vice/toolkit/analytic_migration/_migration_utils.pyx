@@ -1,24 +1,40 @@
 # cython: language_level = 3, boundscheck = False, wraparound = False, cdivision = True
 
+# Note: for a variety of typing reasons, many of the following methods
+# have seperate C and python versions. The C v versions all have a prefix "c_"
+# and the python versions mare more simply named. 
+
+
 from __future__ import absolute_import
 
 cimport cython
-from libc.math cimport NAN, sqrt, log, exp, atanh
+from libc.math cimport NAN, sqrt, log, exp, atanh, isnan
 from libc.stdlib cimport malloc, free
 
 from ...core import _pyutils
 from ...core cimport _cutils
 
-from . cimport _migration_utils
-from ._migration_utils cimport migration_star_2d, array_3d
 
 
-
-cdef (double*, int) to_double_ptr(arr, bint sort=False):
+cdef (double*, int) to_double_ptr(object arr, bint sort=False):
 	"""
 	Converts a python numeric array-like object to a c-pointer
-	Returns a double* pointer and an int length.
-	If sort is true, then the array is first sorted before converting to a pointer.
+
+	**Signature**: to_double_pointer(object arr, bint sort=False)
+
+	Parameters
+	----------
+	arr : ``object``
+		A python numeric array-like object.
+	sort : ``bint``
+		A boolean flag if weather to sort the array or not.
+
+	Returns
+	-------
+	pointer : ``double*``
+		The C type-pointer to the C array of type double*
+	length : ``int``
+		The length of the array
 	"""
 
 	cdef double* arr_c
@@ -29,6 +45,7 @@ cdef (double*, int) to_double_ptr(arr, bint sort=False):
 		"Non-numerical value detected.")
 	if sort:
 		arr = sorted(arr)
+
 	n = len(arr) 
 	arr_c = _cutils.copy_pylist(arr)
 
@@ -37,37 +54,74 @@ cdef (double*, int) to_double_ptr(arr, bint sort=False):
 
 cpdef double rand_sech2():
 	"""
-	Returns a random number drawn from a sech2 distribution.
+	Returns a random number drawn from a sech-squared distribution.
+
+	**Signature**: rand_sech2()
 	"""
+
 	cdef double u = rand_range(-1, 1)
 	return atanh(u)
 
 
-cdef (double, double) sqrt_migration_2d(migration_star_2d* star, double time):
+cdef double c_migration_sqrt(migration_star_2d star, double time) except -1:
+	"""
+	A migration function that migrates a star in 2D with a square root time dependence.
+	See the python version `migration_sqrt` for more detail.
+	"""
+	cdef double x = (time - star.t_birth) / (star.t_final - star.t_birth)
+
+	if x < 0:
+		return -1
+
+	cdef double R = star.R_birth + (star.R_final - star.R_birth) * sqrt(x)
+	return R
+
+
+cdef double c_migration_sqrt_z(migration_star_2d star, double time) except -1:
 	"""
 	A migration function that migrates a star in 2D with a square root
 	time dependence, i.e. moving between the initial and final position
-	as a linear function of the square root of time.
 	"""
-	cdef double x = (time - star.t_birth) / (star.t_end - star.t_birth)
-	cdef double R = star.R_birth + (star.R_final - star.R_birth) * sqrt(x)
+
+	cdef double x = (time - star.t_birth) / (star.t_final - star.t_birth)
+	if x < 0:
+		return -1
+
 	cdef double z = star.z_birth + (star.z_final - star.z_birth) * sqrt(x)
-	return R, z
+	return z
 
 
 
-cdef (double, double) linear_migration_2d(migration_star_2d* star, double time):
+cdef double c_migration_linear(migration_star_2d star, double time) except -1:
 	"""
 	A migration function that linearly interpolates the radius and height of a
 	star in time
 	"""
-	cdef double x = (time - star.t_birth) / (star.t_end - star.t_birth)
+	if star is None:
+		return -1
+	cdef double x = (time - star.t_birth) / (star.t_final - star.t_birth)
+	if x < 0:
+		return -1
 	cdef double R = star.R_birth + (star.R_final - star.R_birth) * x
+	return R
+
+
+cdef double c_migration_linear_z(migration_star_2d star, double time) except -1:
+	"""
+	A migration function that linearly interpolates the radius and height of a
+	star in time
+	"""
+	if star is None:
+		return -1
+	cdef double x = (time - star.t_birth) / (star.t_final - star.t_birth)
+	if x < 0:
+		return -1
+
 	cdef double z = star.z_birth + (star.z_final - star.z_birth) * x
-	return R, z
+	return z
 
 
-cdef int bin_of(double * bins, size_t n_bins, double R):
+cdef int c_bin_of(double * bins, size_t n_bins, double R) except -2:
 	"""
 	Efficient binary search for the bin index of a given radius R. 
 
@@ -92,10 +146,16 @@ cdef int bin_of(double * bins, size_t n_bins, double R):
 	return -1
 
 
-cdef double reflect_boundary(double R, double R_min, double R_max):
+cdef double c_reflect_boundary(double R, double R_min, double R_max) except -1:
 	"""
 	Reflects the radius R off of the boundaries R_min and R_max.
 	"""
+
+	if isnan(R) or isnan(R_min) or isnan(R_max):
+		return -1
+	if R_max < R_min:
+		return -1
+
 	while (R < R_min):
 		dR = R_min - R
 		R = R_min + dR
@@ -108,13 +168,18 @@ cdef double reflect_boundary(double R, double R_min, double R_max):
 
 
 
-cdef double absorb_boundary(double R, double R_min, double R_max):
+cdef double c_absorb_boundary(double R, double R_min, double R_max) except -1:
 	"""
 	Absorbs the radius R into the boundaries R_min and R_max.
 
 	When R passes either boundary (R_min or R_max), it is set to the boundary
 	value.
 	"""
+	if isnan(R) or isnan(R_min) or isnan(R_max):
+		return -1
+	if R_max < R_min:
+		return -1
+
 	if R < R_min:
 		R = R_min
 	elif R > R_max:
@@ -122,12 +187,13 @@ cdef double absorb_boundary(double R, double R_min, double R_max):
 	return R
 
 
-cdef double no_boundary(double R, double R_min, double R_max):
+cdef double c_no_boundary(double R, double R_min, double R_max) except -1:
 	"""
 	Does nothing to the radius R.
 	"""
 	if (R < R_min) or (R > R_max):
-		return NAN
+		return -1
+
 	return R
 
 cdef class array_3d:
@@ -236,35 +302,57 @@ cdef class array_3d:
 		return self.dim1, self.dim2, self.dim3
 
 
-def sqrt_migration_2d_py(star_dict, time):
+def migration_sqrt(star_dict, time):
 	"""
 	A migration function that migrates a star in 2D with a square root
 	time dependence, i.e. moving between the initial and final position
 	as a linear function of the square root of time.
 	"""
-	star = migration_star_2d(t_birth=star_dict["t_birth"], t_end=star_dict["t_end"],
+	star = migration_star_2d(t_birth=star_dict["t_birth"], t_final=star_dict["t_final"],
 		R_birth=star_dict["R_birth"], R_final=star_dict["R_final"],
 		z_birth=star_dict["z_birth"], z_final=star_dict["z_final"])
 
-	result = sqrt_migration_2d(&star, time)
+	result = c_migration_sqrt(star, time)
 	return result
 
+def migration_sqrt_z(star_dict, time):
+	"""
+	A migration function that migrates a star in 2D with a square root
+	time dependence, i.e. moving between the initial and final position
+	as a linear function of the square root of time.
+	"""
+	star = migration_star_2d(t_birth=star_dict["t_birth"], t_final=star_dict["t_final"],
+		R_birth=star_dict["R_birth"], R_final=star_dict["R_final"],
+		z_birth=star_dict["z_birth"], z_final=star_dict["z_final"])
 
-def linear_migration_2d_py(star_dict, double time):
+	result = c_migration_sqrt_z(star, time)
+	return result
+
+def migration_linear(star_dict, double time):
 	"""
 	A migration function that linearly interpolates the radius and height of a
 	star in time
 	"""
-	star = migration_star_2d(t_birth=star_dict["t_birth"], t_end=star_dict["t_end"],
+	star = migration_star_2d(t_birth=star_dict["t_birth"], t_final=star_dict["t_final"],
 		R_birth=star_dict["R_birth"], R_final=star_dict["R_final"],
 		z_birth=star_dict["z_birth"], z_final=star_dict["z_final"])
 
-	result = linear_migration_2d(&star, time)
+	return c_migration_linear(star, time)
 
+def migration_linear_z(star_dict, double time):
+	"""
+	A migration function that linearly interpolates the radius and height of a
+	"""
+
+	star = migration_star_2d(t_birth=star_dict["t_birth"], t_final=star_dict["t_final"],
+		R_birth=star_dict["R_birth"], R_final=star_dict["R_final"],
+		z_birth=star_dict["z_birth"], z_final=star_dict["z_final"])
+
+	result = c_migration_linear_z(star, time)
 	return result
 
 
-def bin_of_py(bins, double R):
+def bin_of(bins, double R):
 	"""
 	Efficient binary search for the bin index of a given radius R. 
 
@@ -274,27 +362,28 @@ def bin_of_py(bins, double R):
 	If R is outside the range of the bins, returns -1.
 	"""
 	bins_c, n_bins = to_double_ptr(bins, sort=True)
-	return bin_of(bins_c, n_bins, R)
+	return c_bin_of(bins_c, n_bins, R)
 
 
-def reflect_boundary_py(R, R_min, R_max):
+
+def reflect_boundary(R, R_min, R_max):
 	"""
 	Reflects the radius R off of the boundaries R_min and R_max.
 	"""
-	return reflect_boundary(R, R_min, R_max)
+	return c_reflect_boundary(R, R_min, R_max)
 
 
-def absorb_boundary_py(R, R_min, R_max):
+def absorb_boundary(R, R_min, R_max):
 	"""
 	Absorbs the radius R into the boundaries R_min and R_max.
 
 	When R passes either boundary (R_min or R_max), it is set to the boundary
 	value.
 	"""
-	return absorb_boundary(R, R_min, R_max)
+	return c_absorb_boundary(R, R_min, R_max)
 
-def no_boundary_py(R, R_min, R_max):
+def no_boundary(R, R_min, R_max):
 	"""
 	Does nothing to the radius R.
 	"""
-	return no_boundary(R, R_min, R_max)
+	return c_no_boundary(R, R_min, R_max)

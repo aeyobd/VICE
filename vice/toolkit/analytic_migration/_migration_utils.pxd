@@ -8,6 +8,8 @@ cdef extern from "../../src/utils.h":
 	double rand_range(double minimum, double maximum)
 	double randn()
 
+cdef extern from "stdlib.h":
+	void srand(long int seed)
 
 """"
 A struct to hold the migration parameters of a star in 2D.
@@ -43,6 +45,7 @@ cdef double c_reflect_boundary(double R, double R_min, double R_max)  except -1
 cdef double c_absorb_boundary(double R, double R_min, double R_max) except -1
 cdef double c_no_boundary(double R, double R_min, double R_max) except -1
 
+cpdef int set_seed(long int seed) except -1
 
 cdef class array_3d:
 	cdef double* array

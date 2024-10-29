@@ -51,6 +51,18 @@ cdef (double*, int) to_double_ptr(object arr, bint sort=False):
 
 	return arr_c, n
 
+cpdef int set_seed(long int seed) except -1:
+	"""
+	Sets C's random number seed using srand
+	If the seed value is negative, uses the current time.
+	"""
+	if seed < 0:
+		# use time seed
+		seed_random()
+	else:
+		srand(seed)
+
+	return 0
 
 cpdef double rand_sech2():
 	"""

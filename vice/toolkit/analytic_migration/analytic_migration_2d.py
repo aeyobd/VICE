@@ -3,6 +3,7 @@ from . import _migration_utils
 from . import _migration_models
 from ._analytic_migration_2d import c_analytic_migration_2d
 from .migration_models import initial_positions_uniform, final_positions_gaussian
+from .migration_models import initial_positions_uniform_py, final_positions_gaussian_py
 
 
 
@@ -81,6 +82,10 @@ class analytic_migration_2d:
 
 	verbose : `bool` [default : False]
 		If true, then prints some status messages as the class is initialized.
+	seed : `int` [default : -1]
+		The seed for the random number generator. If negative, then the seed
+		is set to the time. Note that this is only passed to the default classes
+		to initialize the initial and final positions.
 
 	Attributes
 	----------
@@ -121,27 +126,27 @@ class analytic_migration_2d:
 			t_end=13.5,
 	      		initial_final_filename = None,
 			verbose = False,
-
+			seed = -1,
 		):
 
 		if initial_positions is None:
 			zone_width = rad_bins[1] - rad_bins[0]
 
-			initial_positions = initial_positions_uniform(
+			initial_positions = initial_positions_uniform_py(
 				zone_width = zone_width,
 				R_min = min(rad_bins),
 				R_max = max(rad_bins),
+				seed = seed,
 			)
 
 		if final_positions is None:
-			final_positions = final_positions_gaussian()
+			final_positions = final_positions_gaussian_py(seed=seed)
 
 		self.migration_mode = migration_mode
 		self.boundary_conditions = boundary_conditions
 		self.initial_positions = initial_positions
 		self.final_positions = final_positions
 		
-
 		self.__c_version = c_analytic_migration_2d(
 			rad_bins, 
 			filename = filename, 
@@ -160,6 +165,8 @@ class analytic_migration_2d:
 	def __call__(self, zone, tform, time, n=0):
 		val = self.__c_version(zone, tform, time, n=n)
 		if val < -1:
+			raise ValueError("could not calculate bin")
+		if val > self.n_zones - 1:
 			raise ValueError("could not calculate bin")
 
 		return val

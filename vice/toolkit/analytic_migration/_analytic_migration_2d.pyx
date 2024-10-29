@@ -12,7 +12,7 @@ from libc.stdlib cimport malloc, free
 
 from . cimport _migration_utils  as mu
 
-from ._migration_utils import migration_sqrt, migration_sqrt_z, migration_linear, migration_linear_z, reflect_boundary, absorb_boundary, no_boundary
+from ._migration_utils import reflect_boundary, absorb_boundary, no_boundary
 
 
 ctypedef double (*MigrationFunc)(mu.migration_star_2d, double ) except -1
@@ -61,11 +61,10 @@ cdef class c_analytic_migration_2d:
 			double t_end, 
 			str filename=None,
 			str boundary_conditions="reflect",
-	       		bint verbose=False,
-	       		str initial_final_filename=None,
+			bint verbose=False,
+			str initial_final_filename=None,
 		):
 		"""See python initialization documentation"""
-
 		self.migration_func = NULL
 		self._radial_bins = NULL
 
@@ -291,7 +290,7 @@ cdef class c_analytic_migration_2d:
 	@write.setter
 	def write(self, a):
 		if self.filename is None:
-			print("warning, filename not set, so will not write")
+			self.info("warning, filename not set, so will not write")
 			self._write = False
 		else:
 			self._write = a

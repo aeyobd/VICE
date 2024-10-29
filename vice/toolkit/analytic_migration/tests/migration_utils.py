@@ -6,6 +6,8 @@ from .._migration_utils import rand_sech2, array_3d
 from .._migration_utils import bin_of, migration_sqrt, migration_linear
 from .._migration_utils import migration_sqrt_z, migration_linear_z
 from .._migration_utils import reflect_boundary, absorb_boundary, no_boundary
+from .. import _migration_utils as mu
+
 
 
 from math import exp, isnan
@@ -20,6 +22,7 @@ def test():
 	return ["vice.toolkit.analytic_migration_2d._migration_utils",
 		[
 			test_rand_sec2(),
+			test_seed_random(),
 			test_sqrt_migration_2d(),
 			test_linear_migration_2d(),
 			test_bin_of(),
@@ -69,6 +72,29 @@ def test_array_3d():
 
 	return ["vice.toolkit.analytic_migration_2d._migration_utils.array_3d", test]
 
+
+@unittest
+def test_seed_random():
+	def test():
+		try:
+			mu.set_seed(-1)
+			c = rand_sech2()
+			mu.set_seed(1)
+			a = rand_sech2()
+			mu.set_seed(1)
+			b = rand_sech2()
+			assert a == b
+
+			mu.set_seed(-1)
+			d = rand_sech2()
+			assert c != d
+			assert c != a
+		except Exception as e:
+			print(e)
+			return False
+		return True
+
+	return ["vice.toolkit.analytic_migration_2d._migration_utils.set_seed", test]
 
 @unittest
 def test_rand_sec2():

@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from . cimport _migration_utils
 from ...core cimport _cutils
 from ...core import _pyutils
-from ._migration_utils cimport rand_range, randn, rand_sech2, to_double_ptr
+from ._migration_utils cimport rand_range, randn, rand_sech2, to_double_ptr, set_seed
 from libc.math cimport exp, atanh
 
 from libc.stdlib cimport free
@@ -24,8 +24,9 @@ cdef class c_initial_positions_uniform(c_initial_positions):
 	cdef double R_min
 	cdef double R_max
 	
-	def __cinit__(self, *, double zone_width, double R_min, double R_max):
+	def __cinit__(self, *, double zone_width, double R_min, double R_max, long int seed):
 		# Initialize to static defaults
+		set_seed(seed)
 		self.zone_width = zone_width
 		self.R_min = R_min
 		self.R_max = R_max
@@ -50,7 +51,9 @@ cdef class c_final_positions_gaussian(c_final_positions):
 			double hz_s,
 			double tau_s_z,
 			double R_s,
+			long int seed,
 		):
+		set_seed(seed)
 		self.sigma_r8 = sigma_r8
 		self.tau_power = tau_power
 		self.R_power = R_power

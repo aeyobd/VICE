@@ -25,7 +25,7 @@ from ._grid_reader cimport ELEMENT
 from . cimport _grid_reader
 
 _RECOGNIZED_STUDIES_ = tuple(["cristallo11", "karakas10", "ventura13",
-	"karakas16", "pignatari16"])
+	"karakas16", "pignatari16", "battino19"])
 _VENTURA13_ELEMENTS_ = tuple(["he", "c", "n", "o", "ne", "na", "mg", "al", "si"])
 
 
@@ -51,7 +51,8 @@ def yield_grid(element, study = "cristallo11"):
 			- "ventura13" : Ventura et al. (2013) [4]_
 			- "karakas16": Karakas & Lugaro (2016) [5]_; Karkas et al. (2018)
 				[6]_
-			- "pignatari18": Pignatari et al. (2016) [9]_, Ritter et al. (2018) [10]_, Battino et al. (2019, 2021) [11]_ [12]_
+			- "pignatari16": Pignatari et al. (2016) [9]_, Ritter et al. (2018) [10]_
+			- "battino19": Pignatari et al. (2016) [9]_, Ritter et al. (2018) [10]_, Battino et al. (2019, 2021) [11]_ [12]_
 
 		.. versionadded:: 1.3.0
 			The "ventura13" and "karakas16" yield models were introduced in

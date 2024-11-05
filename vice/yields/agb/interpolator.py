@@ -31,7 +31,8 @@ class interpolator(interp_scheme_2d):
 			- "ventura13" : Ventura et al. (2013) [4]_
 			- "karakas16": Karakas & Lugaro (2016) [5]_; Karkas et al. (2018)
 				[6]_
-			- "pignatari16": Pignatari et al. (2016) [9]_, Ritter et al. (2018) [10]_, Battino et al. (2019, 2021) [11]_ [12]_
+			- "pignatari16": Pignatari et al. (2016) [9]_, Ritter et al. (2018) [10]_
+			- "battino19": Pignatari et al. (2016) [9]_, Ritter et al. (2018) [10]_, Battino et al. (2019, 2021) [11]_ [12]_
 
 
 		.. versionadded:: 1.3.0
@@ -39,6 +40,7 @@ class interpolator(interp_scheme_2d):
 			version 1.3.0.
 		.. versionadded:: develop
 			"pignatari16" yield models
+			"battino19" yield models
 
 	Attributes
 	----------

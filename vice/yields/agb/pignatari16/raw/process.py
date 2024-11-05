@@ -278,22 +278,22 @@ def main():
 
 	elements = yields[(1.0, 0.01)]["Isotopes"]
 
-	B19 = read_battino("B19.txt")
-	B21 = read_battino("B21.txt")
+	# B19 = read_battino("B19.txt")
+	# B21 = read_battino("B21.txt")
 
-	B19 = sort_battino_eles(B19, elements)
-	B21 = sort_battino_eles(B21, elements)
+	# B19 = sort_battino_eles(B19, elements)
+	# B21 = sort_battino_eles(B21, elements)
 
-	assert elements == B19["Isotopes"], "Isotopes do not match between Fryer and Battino"
-	assert elements == B21["Isotopes"], "Isotopes do not match between Fryer and Battino"
+	# assert elements == B19["Isotopes"], "Isotopes do not match between Fryer and Battino"
+	# assert elements == B21["Isotopes"], "Isotopes do not match between Fryer and Battino"
 
 	# adds in the updated yields
-	yields[(2., 0.01)]["Yields"] = B19["m2z1m2"]
-	yields[(3., 0.01)]["Yields"] = B19["m3z1m2"]
-	yields[(2., 0.02)]["Yields"] = B19["m2z2m2"]
-	yields[(3., 0.02)]["Yields"] = B19["m3z2m2"]
-	yields[(2., 0.001)]["Yields"] = B21["m2z1m3-bigpoc"]
-	yields[(3., 0.001)]["Yields"] = B21["m3z1m3-bigpoc"]
+	# yields[(2., 0.01)]["Yields"] = B19["m2z1m2"]
+	# yields[(3., 0.01)]["Yields"] = B19["m3z1m2"]
+	# yields[(2., 0.02)]["Yields"] = B19["m2z2m2"]
+	# yields[(3., 0.02)]["Yields"] = B19["m3z2m2"]
+	# yields[(2., 0.001)]["Yields"] = B21["m2z1m3-bigpoc"]
+	# yields[(3., 0.001)]["Yields"] = B21["m3z1m3-bigpoc"]
 
 
 	add_net_fractional(yields)

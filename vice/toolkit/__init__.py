@@ -45,6 +45,7 @@ if not __VICE_SETUP__:
 		"""
 		return ["vice.toolkit",
 			[
+				analytic_migration.test(run = False),
 				hydrodisk.test(run = False),
 				interpolation.test(run = False)
 			]

@@ -309,6 +309,9 @@ def main():
 	m3z1m2 = read_battino("yields_m3z1m2.txt", elements)
 	m2z2m2 = read_battino("yields_m2z2m2.txt", elements)
 	m3z2m2 = read_battino("yields_m3z2m2.txt", elements)
+	m2z1m3 = read_battino("yields_m2z1m3.txt", elements)
+	m3z1m3 = read_battino("yields_m3z1m3.txt", elements)
+	m2z2m3 = read_battino("yields_m2z2m3.txt", elements)
 
 	# adds in the updated yields
 
@@ -316,8 +319,9 @@ def main():
 	yields[(3., 0.01)] = m3z1m2
 	yields[(2., 0.02)] = m2z2m2
 	yields[(3., 0.02)] = m3z2m2
-
-	# not enough information for battino 2021
+	yields[(2., 0.001)] = m2z1m3
+	yields[(3., 0.001)] = m3z1m3
+	yields[(2., 0.002)] = m2z2m3
 
 
 	add_net_fractional(yields)

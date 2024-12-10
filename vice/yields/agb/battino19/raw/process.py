@@ -138,7 +138,7 @@ def read_battino(file_path, elements):
 
 	df_new = {}
 
-	df_new["Yields"] = df["mass_yield"]
+	df_new["Yields"] = df["wind_yield"]
 
 	with open(file_path, 'r') as file:
 		for line in file:
@@ -149,7 +149,7 @@ def read_battino(file_path, elements):
 	df_new["M_rem"] = M_rem
 
 	df_new["Isotopes"] = df["Isotopes"]
-	df_new["X0"] = df["X0"]
+	df_new["X0"] = df["initial_abundance"]
 	return df_new
 
 
@@ -305,13 +305,13 @@ def main():
 
 	elements = yields[(1.0, 0.01)]["Isotopes"]
 
-	m2z1m2 = read_battino("yields_m2z1m2.txt", elements)
-	m3z1m2 = read_battino("yields_m3z1m2.txt", elements)
-	m2z2m2 = read_battino("yields_m2z2m2.txt", elements)
-	m3z2m2 = read_battino("yields_m3z2m2.txt", elements)
-	m2z1m3 = read_battino("yields_m2z1m3.txt", elements)
-	m3z1m3 = read_battino("yields_m3z1m3.txt", elements)
-	m2z2m3 = read_battino("yields_m2z2m3.txt", elements)
+	m2z1m2 = read_battino("yields_m2z1m2_decay.txt", elements)
+	m3z1m2 = read_battino("yields_m3z1m2_decay.txt", elements)
+	m2z2m2 = read_battino("yields_m2z2m2_decay.txt", elements)
+	m3z2m2 = read_battino("yields_m3z2m2_hCBM_decay.txt", elements)
+	m2z1m3 = read_battino("yields_m2z1m3_decay.txt", elements)
+	m3z1m3 = read_battino("yields_m3z1m3_decay.txt", elements)
+	m2z2m3 = read_battino("yields_m2z2m3_decay.txt", elements)
 
 	# adds in the updated yields
 

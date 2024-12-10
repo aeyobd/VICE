@@ -321,7 +321,8 @@ def main():
 	yields[(3., 0.02)] = m3z2m2
 	yields[(2., 0.001)] = m2z1m3
 	yields[(3., 0.001)] = m3z1m3
-	yields[(2., 0.002)] = m2z2m3
+	# not in grid
+	# yields[(2., 0.002)] = m2z2m3
 
 
 	add_net_fractional(yields)

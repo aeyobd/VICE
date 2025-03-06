@@ -3,8 +3,8 @@ from __future__ import absolute_import
 from ....testing import moduletest, unittest
 
 from .._migration_utils import rand_sech2, array_3d
-from .._migration_utils import bin_of, migration_sqrt, migration_linear
-from .._migration_utils import migration_sqrt_z, migration_linear_z
+from .._migration_utils import bin_of, migration_sqrt, migration_linear, migration_cbrt
+from .._migration_utils import migration_sqrt_z, migration_linear_z, migration_cbrt_z
 from .._migration_utils import reflect_boundary, absorb_boundary, no_boundary
 from .. import _migration_utils as mu
 
@@ -25,6 +25,7 @@ def test():
 			test_seed_random(),
 			test_sqrt_migration_2d(),
 			test_linear_migration_2d(),
+			test_cbrt_migration_2d(),
 			test_bin_of(),
 			test_array_3d(),
 			test_reflect_boundary(),
@@ -181,6 +182,45 @@ def test_sqrt_migration_2d():
 
 	return ["vice.toolkit.analytic_migration_2d._migration_utils.sqrt_migration_2d", test]
 
+
+@unittest 
+def test_cbrt_migration_2d():
+	def test():
+		try:
+			star = {
+					"t_birth": 5,
+					"t_final": 10, 
+					"R_birth": 1,
+					"R_final": 2,
+					"z_birth": 0,
+					"z_final": -0.5,
+					}
+
+			R = migration_cbrt(star, 5)
+			assert R == 1
+			z = migration_cbrt_z(star, 5)
+			assert z == 0
+
+			R = migration_cbrt(star, 10)
+			z = migration_cbrt_z(star, 10)
+			assert R == 2
+			assert z == -0.5
+
+			
+			R = migration_cbrt(star, 7)
+			z = migration_cbrt_z(star, 7)
+			R_exp = 1 + (2/5)**(1/3)
+			z_exp = 0 - 0.5 * (2/5)**(1/3)
+			assert abs(R - R_exp) < 1e-8
+			assert abs(z - z_exp) < 1e-8
+
+		except Exception as e:
+			print(e)
+			return False
+
+		return True
+
+	return ["vice.toolkit.analytic_migration_2d._migration_utils.cbrt_migration_2d", test]
 
 
 @unittest

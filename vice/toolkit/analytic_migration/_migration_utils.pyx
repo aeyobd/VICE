@@ -8,7 +8,7 @@
 from __future__ import absolute_import
 
 cimport cython
-from libc.math cimport NAN, sqrt, log, exp, atanh, isnan
+from libc.math cimport NAN, sqrt, log, exp, atanh, isnan, cbrt
 from libc.stdlib cimport malloc, free
 
 from ...core import _pyutils
@@ -89,6 +89,19 @@ cdef double c_migration_sqrt(migration_star_2d star, double time) except -1:
 	return R
 
 
+cdef double c_migration_cbrt(migration_star_2d star, double time) except -1:
+	"""
+	A migration function that migrates a star in 2D with a cbrt root time dependence.
+	See the python version `migration_sqrt` for more detail.
+	"""
+	cdef double x = (time - star.t_birth) / (star.t_final - star.t_birth)
+
+	if x < 0:
+		return -1
+
+	cdef double R = star.R_birth + (star.R_final - star.R_birth) * cbrt(x)
+	return R
+
 cdef double c_migration_sqrt_z(migration_star_2d star, double time) except -1:
 	"""
 	A migration function that migrates a star in 2D with a square root
@@ -102,6 +115,18 @@ cdef double c_migration_sqrt_z(migration_star_2d star, double time) except -1:
 	cdef double z = star.z_birth + (star.z_final - star.z_birth) * sqrt(x)
 	return z
 
+cdef double c_migration_cbrt_z(migration_star_2d star, double time) except -1:
+	"""
+	A migration function that migrates a star in 2D with a cube root
+	time dependence, i.e. moving between the initial and final position
+	"""
+
+	cdef double x = (time - star.t_birth) / (star.t_final - star.t_birth)
+	if x < 0:
+		return -1
+
+	cdef double z = star.z_birth + (star.z_final - star.z_birth) * cbrt(x)
+	return z
 
 
 cdef double c_migration_linear(migration_star_2d star, double time) except -1:
@@ -327,6 +352,7 @@ def migration_sqrt(star_dict, time):
 	result = c_migration_sqrt(star, time)
 	return result
 
+
 def migration_sqrt_z(star_dict, time):
 	"""
 	A migration function that migrates a star in 2D with a square root
@@ -338,6 +364,33 @@ def migration_sqrt_z(star_dict, time):
 		z_birth=star_dict["z_birth"], z_final=star_dict["z_final"])
 
 	result = c_migration_sqrt_z(star, time)
+	return result
+
+
+def migration_cbrt(star_dict, time):
+	"""
+	A migration function that migrates a star in 2D with a cube root
+	time dependence, i.e. moving between the initial and final position
+	as a linear function of the cube root of time.
+	"""
+	star = migration_star_2d(t_birth=star_dict["t_birth"], t_final=star_dict["t_final"],
+		R_birth=star_dict["R_birth"], R_final=star_dict["R_final"],
+		z_birth=star_dict["z_birth"], z_final=star_dict["z_final"])
+
+	result = c_migration_cbrt(star, time)
+	return result
+
+
+def migration_cbrt_z(star_dict, time):
+	"""
+	A migration function that migrates a star in 2D with a cube root
+	time dependence, i.e. moving between the initial and final position
+	as a linear function of the cube root of time.
+	"""
+	star = migration_star_2d(t_birth=star_dict["t_birth"], t_final=star_dict["t_final"],
+		R_birth=star_dict["R_birth"], R_final=star_dict["R_final"],
+		z_birth=star_dict["z_birth"], z_final=star_dict["z_final"])
+	result = c_migration_cbrt_z(star, time)
 	return result
 
 def migration_linear(star_dict, double time):

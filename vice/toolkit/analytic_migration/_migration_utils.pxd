@@ -37,6 +37,9 @@ cpdef double rand_sech2()
 cdef double  c_migration_sqrt(migration_star_2d, double) except -1
 cdef double  c_migration_sqrt_z(migration_star_2d, double) except -1
 
+cdef double  c_migration_cbrt(migration_star_2d, double) except -1
+cdef double  c_migration_cbrt_z(migration_star_2d, double) except -1
+
 cdef double c_migration_linear(migration_star_2d, double) except -1
 cdef double c_migration_linear_z(migration_star_2d, double) except -1
 

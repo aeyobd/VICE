@@ -44,6 +44,7 @@ class analytic_migration_2d:
             The functional form of the migration. Options are:
             - "linear" : linear migration in R and z
             - "sqrt" : sqrt(R) migration in R and z
+	    - "cbrt": cbrt(R) migration in R and z
 
 	boundary_conditions: str [default : "reflect"]
 		The boundary conditions to apply if a star would migrate outside the radial bins.

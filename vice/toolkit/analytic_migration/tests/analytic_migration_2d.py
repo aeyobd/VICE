@@ -24,6 +24,7 @@ def test():
 			test_radial_bins_setter(),
 			test_call(),
 			test_sqrt_migration(),
+			test_cbrt_migration(),
 		]
 	]
 
@@ -156,6 +157,37 @@ def test_sqrt_migration():
 
 			R_expected = R_birth + (R_final - R_birth) * (delta_t / (t_final - t_birth))**0.5
 			R_actual = _RAD_BINS_[_TEST_(zone_birth, t_birth, time, n)]
+
+			if not (abs(R_expected - R_actual) < _DR_):
+				sys.stdout.write("R_expected = %f, R_actual = %f\n" % (R_expected, R_actual))
+				sys.stdout.write("zone_birth = %d, t_birth = %f, time = %f\n" % (zone_birth, t_birth, time))
+				return False
+		return True
+
+	return ["vice.toolkit.analytic_migration_2d.analytic_migration_2d.sqrt_migration", test]
+
+
+@unittest 
+def test_cbrt_migration():
+	def test():
+		zone_birth = 40
+		t_idx_birth = 100
+		n = 1
+		model = analytic_migration_2d(_RAD_BINS_, dt=_DT_, migration_mode="cbrt")
+		
+		star = model._analytic_migration_2d__c_version.get_star(zone_birth, t_idx_birth, n)
+
+		R_birth = star["R_birth"]
+		R_final = star["R_final"]
+		t_birth = star["t_birth"]
+		t_final = star["t_final"]
+
+		for i in range(t_idx_birth, len(_BIRTH_TIMES_)):
+			time = _BIRTH_TIMES_[i]
+			delta_t = time - t_birth
+
+			R_expected = R_birth + (R_final - R_birth) * (delta_t / (t_final - t_birth))**(1/3)
+			R_actual = _RAD_BINS_[model(zone_birth, t_birth, time, n)]
 
 			if not (abs(R_expected - R_actual) < _DR_):
 				sys.stdout.write("R_expected = %f, R_actual = %f\n" % (R_expected, R_actual))

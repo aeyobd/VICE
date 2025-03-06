@@ -121,6 +121,9 @@ cdef class c_analytic_migration_2d:
 		elif migration_mode == "linear":
 			self.migration_func = mu.c_migration_linear
 			self.migration_func_z = mu.c_migration_linear_z
+		elif migration_mode == "cbrt":
+			self.migration_func = mu.c_migration_cbrt
+			self.migration_func_z = mu.c_migration_cbrt_z
 		else:
 			raise ValueError("migration mode not know")
 			return -1

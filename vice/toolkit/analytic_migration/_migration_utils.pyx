@@ -193,13 +193,13 @@ cdef double c_reflect_boundary(double R, double R_min, double R_max) except -1:
 	if R_max < R_min:
 		return -1
 
-	while (R < R_min):
-		dR = R_min - R
-		R = R_min + dR
-
-	while (R > R_max):
-		dR = R - R_max
-		R = R_max - dR
+	while (R < R_min) or (R > R_max):
+		if R < R_min:
+			dR = R_min - R
+			R = R_min + dR
+		elif R > R_max:
+			dR = R - R_max
+			R = R_max - dR
 
 	return R
 

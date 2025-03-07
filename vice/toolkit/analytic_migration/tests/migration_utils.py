@@ -294,6 +294,7 @@ def test_reflect_boundary():
 			assert reflect_boundary(3.14, R_min, R_max) == 3.14
 			assert reflect_boundary(4.56, R_min, R_max) == 4.56
 			assert reflect_boundary(R_max, R_min, R_max) == 5
+			assert reflect_boundary(11, R_min, R_max) == 4
 
 		except Exception as e:
 			print(e)

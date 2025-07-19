@@ -163,9 +163,10 @@ element %s. Only the following elements have tables available: %s.""" % (
 		pass
 
 	cdef ELEMENT *e = _grid_reader.element_initialize()
-	if _grid_reader.import_agb_grid(e, filename.encode("latin-1")):
+	err_code = _grid_reader.import_agb_grid(e, filename.encode("latin-1"))
+	if err_code != 0:
 		_grid_reader.element_free(e)
-		raise SystemError("Internal Error: couldn't read yield file.")
+		raise SystemError("Internal Error: couldn't read yield file. err code: ", err_code)
 	else:
 		try:
 			# copy over the yields, masses, and metallicities

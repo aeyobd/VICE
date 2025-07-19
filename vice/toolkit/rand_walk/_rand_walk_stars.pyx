@@ -24,7 +24,6 @@ cdef class c_rand_walk_stars:
 	cdef size_t N_idx
 	cdef double dt
 	cdef double sigma_R
-	cdef double tau_R
 	cdef bint _write
 	cdef char* filename
 	cdef public double r_max

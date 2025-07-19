@@ -14,6 +14,8 @@ class rand_walk_stars:
 		n_stars = 1,
 		dt = 0.01,
 		t_end = 13.5
+		filename=None,
+		sigma_R = 1.27,
 	)
 
 	Parameters

@@ -143,6 +143,9 @@ def pivot_yields(yields, values="Yields"):
 				pivoted[iso] = {}
 			pivoted[iso].append((M, Z, data[values][i]))
 
+		
+		print(M, Z, M - sum(data["Yields"]))
+
 	return pivoted
 
 
@@ -163,14 +166,20 @@ def save_yields(elements, yields, Z):
 
 		with open(filename, 'w') as file:
 			# header
-			file.write(f"#M\tZ")
+			file.write(f"#M_sun")
 			for iso in isos:
 				file.write(f"\t{iso.lower()}")
 			file.write("\n")
 
+            # write the 8 Msun point
+			file.write("8")
+			for iso in isos:
+				file.write("\t0")
+			file.write("\n")
+
 			for M in Ms:
 				if M >= 8:
-					file.write(f"{M:e}\t{Z:e}")
+					file.write(f"{M:e}")
 					for iso in isos:
 						y = yields[iso]
 						idx = next(i for i in range(len(y)) if
@@ -207,11 +216,14 @@ def write_birth(df_elem, Z):
 			file.write(f"{ele}\t{Z0:e}\n")
 
 def main():
+	print("elem")
 	df_elem = read_element_yields("element_yield_table_MESAonly_fryer12_delay_total.txt")
 	elements = df_elem[(1.0, 0.01)]["Isotopes"]
 
+	print("total")
 	yields_total = pivot_yields(read_element_yields("isotope_yield_table_MESAonly_fryer12_delay_total.txt"))
 	#print(yields_total)
+	print("wind only")
 	yields_wind = pivot_yields(read_element_yields("isotope_yield_table_MESAonly_fryer12_delay_winds.txt"))
 
 	yields_explosive = {key: [(a[0], a[1], a[2] - b[2]) for a, b in zip(yields_total[key], yields_wind[key])] for key in yields_total.keys()}

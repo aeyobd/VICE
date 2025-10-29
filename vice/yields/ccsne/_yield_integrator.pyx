@@ -362,6 +362,8 @@ def integrate(element, study = "LC18", MoverH = 0, rotation = 0,
 		raise ValueError("Unrecognized study: %s" % (study))
 	elif not os.path.exists("%syields/ccsne/%s/FeH%s" % (_DIRECTORY_,
 		study.upper(), MoverHstr)):
+		print("%syields/ccsne/%s/FeH%s" % (_DIRECTORY_,
+		study.upper(), MoverHstr))
 		raise LookupError("The %s study does not have yields for [M/H] = %s" % (
 			_NAMES_[study.upper()], MoverHstr.replace('p', '.')))
 	elif not os.path.exists("%syields/ccsne/%s/FeH%s/v%d" % (_DIRECTORY_,
@@ -442,6 +444,7 @@ object. Got: %s""" % (type(explodability)))
 	"""
 	upper_mass_limits = {
 		"LC18":			120,
+		"P16":			25,
 		"CL13": 		120,
 		"CL04": 		35,
 		"WW95": 		40,
